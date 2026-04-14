@@ -1,9 +1,34 @@
-import { Hono } from 'hono'
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { createFactory } from "hono/factory";
+import type { JwtVariables } from "hono/jwt";
+import { jwt } from "hono/jwt";
+import { Bindings } from "./types";
+import { ALG } from "./constants";
+import auth from "./routes/auth";
+import users from "./routes/users";
 
-const app = new Hono()
+const app = new Hono<{ Variables: JwtVariables; Bindings: Bindings }>();
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
+app.use("/*", cors());
 
-export default app
+const factory = createFactory<{ Bindings: Bindings }>();
+app.use(
+  "/*",
+  factory.createMiddleware(async (c, next) => {
+    if (c.req.path.startsWith("/auth/")) {
+      return next();
+    }
+
+    const jwtMiddleware = jwt({
+      secret: c.env.JWT_SECRET,
+      alg: ALG,
+    });
+    return jwtMiddleware(c, next);
+  }),
+);
+
+app.route("/auth", auth);
+app.route("/users", users);
+
+export default app;
