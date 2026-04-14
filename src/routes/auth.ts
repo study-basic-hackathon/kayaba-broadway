@@ -1,6 +1,7 @@
+import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import type { JwtVariables } from "hono/jwt";
 import { sign, verify } from "hono/jwt";
+import { z } from "zod";
 import { ALG } from "../constants";
 import { Bindings, User } from "../types";
 
@@ -8,7 +9,7 @@ const users: User[] = [
   { id: "1", email: "shun@example.com", password: "1234" },
 ];
 
-const auth = new Hono<{ Variables: JwtVariables; Bindings: Bindings }>();
+const auth = new Hono<{ Bindings: Bindings }>();
 
 const ACCESS_TOKEN_EXPIRES_IN = 60 * 15;
 const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24 * 7;
@@ -17,11 +18,13 @@ function findUser(email: string, password: string): User | undefined {
   return users.find((x) => x.email === email && x.password === password);
 }
 
-auth.post("/login", async (c) => {
-  const { email, password } = await c.req.json<{
-    email: string;
-    password: string;
-  }>();
+const loginSchema = z.object({
+  email: z.email(),
+  password: z.string(),
+});
+
+auth.post("/login", zValidator("json", loginSchema), async (c) => {
+  const { email, password } = await c.req.valid("json");
 
   const user = findUser(email, password);
 
