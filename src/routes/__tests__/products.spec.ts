@@ -17,7 +17,7 @@ describe("GET:/products/:id", () => {
     expect(product.shop_id).toBe("shop-1");
   });
 
-  test("存在しない商品の場合、404", async () => {
+  test("異常系: 存在しない商品の場合、404", async () => {
     const res = await getProductRequest("nonexistent");
     const { error } = (await res.json()) as { error: string };
     expect(res.status).toBe(404);
