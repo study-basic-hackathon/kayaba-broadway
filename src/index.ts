@@ -7,6 +7,7 @@ import { Bindings } from "./types";
 import { ALG } from "./constants";
 import auth from "./routes/auth";
 import users from "./routes/users";
+import shops from "./routes/shops";
 
 const app = new Hono<{ Variables: JwtVariables; Bindings: Bindings }>();
 
@@ -30,5 +31,6 @@ app.use(
 
 app.route("/auth", auth);
 app.route("/users", users);
+app.route("/shops", shops);
 
 export default app;
