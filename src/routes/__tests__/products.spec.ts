@@ -42,7 +42,6 @@ describe("GET:/products/:id", () => {
     expect(product.shop_id).toBe("shop-1");
   });
 
-  test("異常系: 存在しない商品の場合、404", async () => {
   test("異常系: Authorizationヘッダーなしの場合、401", async () => {
     const res = await getProductRequest("product-1");
     expect(res.status).toBe(401);
