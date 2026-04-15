@@ -26,33 +26,43 @@ const loginSchema = z.object({
 auth.post("/login", zValidator("json", loginSchema), async (c) => {
   const { email, password } = await c.req.valid("json");
 
-  const user = findUser(email, password);
+  try {
+    const user = findUser(email, password);
 
-  if (!user) {
-    return c.json({ error: "認証失敗" }, 401);
+    if (!user) {
+      return c.json({ error: "認証失敗" }, 401);
+    }
+
+    if (!c.env.JWT_SECRET) {
+      console.error("JWT_SECRET is not set");
+      return c.json({ error: "サーバーエラー" }, 500);
+    }
+
+    const accessToken = await sign(
+      {
+        sub: user.id,
+        role: "user",
+        exp: Math.floor(Date.now() / 1000) + ACCESS_TOKEN_EXPIRES_IN,
+      },
+      c.env.JWT_SECRET,
+      ALG,
+    );
+
+    const refreshToken = await sign(
+      {
+        sub: user.id,
+        type: "refresh",
+        exp: Math.floor(Date.now() / 1000) + REFRESH_TOKEN_EXPIRES_IN,
+      },
+      c.env.JWT_SECRET,
+      ALG,
+    );
+
+    return c.json({ accessToken, refreshToken });
+  } catch (error) {
+    console.error(error);
+    return c.json({ error: "ログインに失敗しました" }, 500);
   }
-
-  const accessToken = await sign(
-    {
-      sub: user.id,
-      role: "user",
-      exp: Math.floor(Date.now() / 1000) + ACCESS_TOKEN_EXPIRES_IN,
-    },
-    c.env.JWT_SECRET,
-    ALG,
-  );
-
-  const refreshToken = await sign(
-    {
-      sub: user.id,
-      type: "refresh",
-      exp: Math.floor(Date.now() / 1000) + REFRESH_TOKEN_EXPIRES_IN,
-    },
-    c.env.JWT_SECRET,
-    ALG,
-  );
-
-  return c.json({ accessToken, refreshToken });
 });
 
 auth.post("/refresh", async (c) => {
@@ -76,7 +86,8 @@ auth.post("/refresh", async (c) => {
     );
 
     return c.json({ accessToken });
-  } catch {
+  } catch (error) {
+    console.error(error);
     return c.json({ error: "無効なトークン" }, 401);
   }
 });
