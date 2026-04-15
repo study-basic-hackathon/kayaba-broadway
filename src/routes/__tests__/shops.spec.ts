@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test } from "vitest";
 import app from "../../index";
 
 const ENV = { JWT_SECRET: "test-secret" };
@@ -50,12 +50,20 @@ async function getAccessToken() {
     ENV,
   );
   const { accessToken } = (await loginRes.json()) as { accessToken: string };
+  if (loginRes.status !== 200 || !accessToken) {
+    throw new Error("アクセストークンの取得に失敗しました");
+  }
   return accessToken;
 }
 
+let accessToken = "";
+
+beforeAll(async () => {
+  accessToken = await getAccessToken();
+});
+
 describe("GET:/shops", () => {
   test("正常系", async () => {
-    const accessToken = await getAccessToken();
     const res = await getShopsRequest(accessToken);
     expect(res.status).toBe(200);
     const { shops: shopList } = (await res.json()) as { shops: unknown[] };
@@ -71,7 +79,6 @@ describe("GET:/shops", () => {
 
 describe("GET:/shops/:id", () => {
   test("正常系", async () => {
-    const accessToken = await getAccessToken();
     const res = await getShopRequest("shop-1", accessToken);
     expect(res.status).toBe(200);
     const { shop } = (await res.json()) as {
@@ -82,7 +89,6 @@ describe("GET:/shops/:id", () => {
   });
 
   test("異常系: 存在しない店舗の場合、404", async () => {
-    const accessToken = await getAccessToken();
     const res = await getShopRequest("nonexistent", accessToken);
     const { error } = (await res.json()) as { error: string };
     expect(res.status).toBe(404);
@@ -92,7 +98,6 @@ describe("GET:/shops/:id", () => {
 
 describe("GET:/shops/:id/products", () => {
   test("正常系", async () => {
-    const accessToken = await getAccessToken();
     const res = await getShopProductsRequest("shop-1", accessToken);
     expect(res.status).toBe(200);
     const { products } = (await res.json()) as { products: unknown[] };
@@ -101,7 +106,6 @@ describe("GET:/shops/:id/products", () => {
   });
 
   test("異常系: 存在しない店舗の場合、404", async () => {
-    const accessToken = await getAccessToken();
     const res = await getShopProductsRequest("nonexistent", accessToken);
     const { error } = (await res.json()) as { error: string };
     expect(res.status).toBe(404);
