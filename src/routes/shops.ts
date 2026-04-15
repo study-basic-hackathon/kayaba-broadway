@@ -1,5 +1,6 @@
 import { Hono } from "hono";
-import { productList, shopList } from "../data/shops";
+import { productList } from "../data/products";
+import { shopList } from "../data/shops";
 import { Bindings } from "../types";
 
 const shops = new Hono<{ Bindings: Bindings }>();
