@@ -35,6 +35,18 @@ npm run dev
 npm run deploy
 ```
 
+## テスト
+
+```txt
+npx vitest run
+```
+
+ウォッチモードで実行する場合：
+
+```txt
+npx vitest
+```
+
 ## API エンドポイント
 
 | メソッド | パス     | 説明                 |
