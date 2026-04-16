@@ -12,7 +12,17 @@
 
 | ファイル | 説明 |
 |----------|------|
+| [README.md](../README.md) | プロジェクト概要・セットアップ・開発・テスト・デプロイ手順 |
 | [docs/design-doc.md](../docs/design-doc.md) | Design Doc。コンセプト・機能要件・画面構成・システム構成・DB/API初期設計をまとめたメインドキュメント |
+| [docs/api-endpoints.md](../docs/api-endpoints.md) | APIエンドポイント一覧。実装済みエンドポイントの仕様・リクエスト・レスポンス例をまとめたドキュメント |
+
+## 参照スキルガイド（Skills）
+
+特定のタスクを実行する際は、必ず以下の対応するスキルを参照し、その指針に従ってください。
+
+- **バックエンド API の実装・追加**
+  - Hono ルート・テストの作成規約、エンドポイント仕様
+  - 📄 `.github/skills/backend-api/SKILL.md`
 
 ## リポジトリ構成
 
@@ -42,10 +52,3 @@ kayaba-broadway/          # バックエンド（Hono + Drizzle ORM）
 | データベース | Cloudflare D1 |
 | ファイルストレージ | Cloudflare R2 |
 
-## 参照スキルガイド（Skills）
-
-特定のタスクを実行する際は、必ず以下の対応するスキルを参照し、その指針に従ってください。
-
-- **バックエンド API の実装・追加**
-  - Hono ルート・テストの作成規約、エンドポイント仕様
-  - 📄 `.github/skills/backend-api/SKILL.md`
