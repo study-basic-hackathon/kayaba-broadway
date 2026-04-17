@@ -13,6 +13,9 @@
 | POST | `/auth/login` | 不要 | ログインしてアクセストークン・リフレッシュトークンを取得 |
 | POST | `/auth/refresh` | 不要 | リフレッシュトークンからアクセストークンを再発行 |
 | GET | `/users/me` | 必要 | ログイン中ユーザー情報を取得 |
+| GET | `/fields` | 必要 | フィールド一覧を取得 |
+| GET | `/fields/:id` | 必要 | フィールド詳細を取得（背景画像URLを含む） |
+| GET | `/fields/:id/shops` | 必要 | 指定フィールドの店舗一覧を取得 |
 | GET | `/shops` | 必要 | 店舗一覧を取得 |
 | GET | `/shops/:id` | 必要 | 店舗詳細を取得 |
 | GET | `/shops/:id/products` | 必要 | 指定店舗の商品一覧を取得 |
@@ -55,21 +58,42 @@ curl -X GET "http://localhost:8787/shops" \
   -H "Authorization: Bearer <accessToken>"
 ```
 
-### 5. 店舗詳細取得
+### 5. フィールド一覧取得
+
+```bash
+curl -X GET "http://localhost:8787/fields" \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+### 6. フィールド詳細取得
+
+```bash
+curl -X GET "http://localhost:8787/fields/field-1" \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+### 7. フィールド内店舗一覧取得
+
+```bash
+curl -X GET "http://localhost:8787/fields/field-1/shops" \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+### 8. 店舗詳細取得
 
 ```bash
 curl -X GET "http://localhost:8787/shops/shop-1" \
   -H "Authorization: Bearer <accessToken>"
 ```
 
-### 6. 店舗内商品一覧取得
+### 9. 店舗内商品一覧取得
 
 ```bash
 curl -X GET "http://localhost:8787/shops/shop-1/products" \
   -H "Authorization: Bearer <accessToken>"
 ```
 
-### 7. 商品詳細取得
+### 10. 商品詳細取得
 
 ```bash
 curl -X GET "http://localhost:8787/products/product-1" \

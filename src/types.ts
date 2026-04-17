@@ -9,8 +9,19 @@ export type User = {
   password: string;
 };
 
+export type Field = {
+  id: string;
+  name: string;
+  description: string;
+  background_url: string;
+  width: number;
+  height: number;
+  created_at: number;
+};
+
 export type Shop = {
   id: string;
+  field_id: string;
   name: string;
   description: string;
   position_x: number;

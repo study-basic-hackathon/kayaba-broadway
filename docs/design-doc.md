@@ -145,15 +145,30 @@
 | icon_url      | TEXT        | アイコン画像URL（R2パス）  |
 | created_at    | INTEGER     | 作成日時（Unix時刻）       |
 
+### fields（フィールド／仮想空間）
+
+> 現時点では「茅場ブロードウェイ」の1フィールドのみ存在するが、将来的に複数空間へ拡張できるよう独立テーブルとして管理する。
+
+| カラム名          | 型          | 説明                                          |
+| ----------------- | ----------- | --------------------------------------------- |
+| id                | TEXT (UUID) | 主キー                                        |
+| name              | TEXT        | フィールド名（例: "茅場ブロードウェイ"）     |
+| description       | TEXT        | フィールドの説明                              |
+| background_url    | TEXT        | 背景画像URL（R2パス）                         |
+| width             | INTEGER     | フィールドの横幅（タイル数またはピクセル数）  |
+| height            | INTEGER     | フィールドの縦幅（タイル数またはピクセル数）  |
+| created_at        | INTEGER     | 作成日時（Unix時刻）                          |
+
 ### shops（店舗）
 
-| カラム名    | 型          | 説明                |
-| ----------- | ----------- | ------------------- |
-| id          | TEXT (UUID) | 主キー              |
-| name        | TEXT        | 店舗名              |
-| description | TEXT        | 店舗説明            |
-| position_x  | INTEGER     | フィールド上のX座標 |
-| position_y  | INTEGER     | フィールド上のY座標 |
+| カラム名    | 型          | 説明                                   |
+| ----------- | ----------- | -------------------------------------- |
+| id          | TEXT (UUID) | 主キー                                 |
+| field_id    | TEXT        | 所属フィールドID（FK → fields.id）     |
+| name        | TEXT        | 店舗名                                 |
+| description | TEXT        | 店舗説明                               |
+| position_x  | INTEGER     | フィールド上のX座標                    |
+| position_y  | INTEGER     | フィールド上のY座標                    |
 
 ### products（商品）
 
@@ -189,6 +204,8 @@
 | POST     | `/auth/refresh`           | トークンリフレッシュ（アクセストークンの再発行） |
 | GET      | `/users/me`               | 自分のプロフィール取得                           |
 | PUT      | `/users/me`               | プロフィール更新                                 |
+| GET      | `/fields`                 | フィールド一覧取得                               |
+| GET      | `/fields/:id`             | フィールド詳細取得（背景画像URLを含む）          |
 | GET      | `/shops`                  | 店舗一覧取得                                     |
 | GET      | `/shops/:id`              | 店舗詳細取得                                     |
 | GET      | `/shops/:id/products`     | 店舗内商品一覧                                   |
@@ -196,6 +213,12 @@
 | POST     | `/products/:id/purchase`  | 商品購入（モック決済）                           |
 | GET      | `/purchases`              | 自分の購入履歴一覧                               |
 | GET      | `/purchases/:id/download` | 購入済みファイルのダウンロードURL取得            |
+
+### フィールドAPIの設計方針
+
+- **現時点**: ログイン後は固定の1フィールド（茅場ブロードウェイ）に遷移する。フロントエンドは `/fields` で一覧を取得し、先頭のフィールドを表示すれば良い。
+- **将来的な拡張**: 複数フィールドが存在する場合、ユーザーが入場先を選択できるようにする。`/fields` の一覧をロビー画面などで表示する想定。
+- **背景画像**: `background_url` はR2上のパスを返す。フロントエンドはこのURLをPixiJSの背景スプライトとして読み込む。
 
 ---
 
