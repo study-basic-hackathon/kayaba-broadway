@@ -15,6 +15,7 @@
 | [README.md](../README.md) | プロジェクト概要・セットアップ・開発・テスト・デプロイ手順 |
 | [docs/design-doc.md](../docs/design-doc.md) | Design Doc。コンセプト・機能要件・画面構成・システム構成・DB/API初期設計をまとめたメインドキュメント |
 | [docs/api-endpoints.md](../docs/api-endpoints.md) | APIエンドポイント一覧。実装済みエンドポイントの仕様・リクエスト・レスポンス例をまとめたドキュメント |
+| [docs/system-flow.md](../docs/system-flow.md) | システムフロー図。フロントエンド・バックエンド・Partykit 間の処理フローをMermaidシーケンス図で記述 |
 
 ## 参照スキルガイド（Skills）
 
