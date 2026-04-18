@@ -9,6 +9,7 @@ import auth from "./routes/auth";
 import users from "./routes/users";
 import shops from "./routes/shops";
 import products from "./routes/products";
+import fields from "./routes/fields";
 
 const app = new Hono<{ Variables: JwtVariables; Bindings: Bindings }>();
 
@@ -34,5 +35,6 @@ app.route("/auth", auth);
 app.route("/users", users);
 app.route("/shops", shops);
 app.route("/products", products);
+app.route("/fields", fields);
 
 export default app;
