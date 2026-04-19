@@ -58,7 +58,10 @@ async function verifyJwt(
   secret: string
 ): Promise<{ sub: string } | null> {
   try {
-    const [headerB64, payloadB64, signatureB64] = token.split(".");
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+
+    const [headerB64, payloadB64, signatureB64] = parts;
     if (!headerB64 || !payloadB64 || !signatureB64) return null;
 
     const enc = new TextEncoder();
