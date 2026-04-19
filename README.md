@@ -101,7 +101,7 @@ npm run dev
 npm install -g wscat
 
 # バックエンドでトークンを取得してから接続
-wscat -c "ws://localhost:1999/party/field-1?token=<accessToken>"
+wscat -c "ws://localhost:1999/party/field-1" -H "Authorization: Bearer <accessToken>"
 
 # 移動メッセージを送信
 > {"type":"move","x":100,"y":200}

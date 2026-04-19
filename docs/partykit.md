@@ -36,7 +36,7 @@ kayaba-broadway/
 フィールドIDをルームIDとして使用する。
 
 ```
-ws://localhost:1999/party/field-1?token=<accessToken>
+ws://localhost:1999/party/field-1
 ```
 
 - フィールドごとに独立したルームになるため、将来複数フィールドに対応できる
@@ -44,8 +44,12 @@ ws://localhost:1999/party/field-1?token=<accessToken>
 
 ### 認証
 
-接続時にクエリパラメータ `?token=<accessToken>` を付与する。  
-Partykit サーバーの `onConnect` で JWT を検証し、無効なら接続を拒否する。
+接続時に以下のいずれかの方法でトークンを送信する。Partykit サーバーの `onConnect` で JWT を検証し、無効なら接続を拒否する。
+
+| 方法 | 説明 |
+|------|------|
+| `Authorization` ヘッダー | `Authorization: Bearer <accessToken>` |
+| `Sec-WebSocket-Protocol` ヘッダー | `Sec-WebSocket-Protocol: bearer.<accessToken>` （ブラウザの WebSocket API でヘッダーを直接付与できない場合に利用） |
 
 ```
 // バックエンドと Partykit で同じ JWT_SECRET を共有する（HS256）
@@ -175,7 +179,11 @@ npx partykit dev --config partykit/partykit.json
 npm install -g wscat
 
 # 接続（tokenはバックエンドのPOST /auth/loginで取得したもの）
-wscat -c "ws://localhost:1999/party/field-1?token=<accessToken>"
+# Authorization ヘッダーで渡す場合
+wscat -c "ws://localhost:1999/party/field-1" -H "Authorization: Bearer <accessToken>"
+
+# Sec-WebSocket-Protocol ヘッダーで渡す場合（ブラウザ環境想定）
+wscat -c "ws://localhost:1999/party/field-1" --protocol "bearer.<accessToken>"
 
 # 移動メッセージを送信
 > {"type":"move","x":100,"y":200}

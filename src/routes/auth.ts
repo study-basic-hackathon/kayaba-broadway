@@ -3,11 +3,11 @@ import { Hono } from "hono";
 import { sign, verify } from "hono/jwt";
 import { z } from "zod";
 import { ALG } from "../constants";
+import { userList } from "../data/users";
 import { Bindings, User } from "../types";
 
-const users: User[] = [
-  { id: "1", email: "shun@example.com", password: "1234" },
-];
+// TODO: 将来的に DB からの取得に置き換える
+const users: User[] = userList;
 
 const auth = new Hono<{ Bindings: Bindings }>();
 
