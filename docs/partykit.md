@@ -7,7 +7,7 @@ Partykit は WebSocket ベースのリアルタイム通信サーバー。
 
 ---
 
-## ディレクトリ構成（実装予定）
+## ディレクトリ構成（現状）
 
 ```
 kayaba-broadway/
