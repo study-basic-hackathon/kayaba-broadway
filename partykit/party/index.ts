@@ -121,7 +121,13 @@ export default class FieldRoom implements Party.Server {
   constructor(readonly room: Party.Room) {}
 
   private findUserStateByUserId(userId: string): UserState | undefined {
-    return [...this.users.values()].find((user) => user.userId === userId);
+    for (const user of this.users.values()) {
+      if (user.userId === userId) {
+        return user;
+      }
+    }
+
+    return undefined;
   }
 
   private hasUserConnection(userId: string): boolean {
