@@ -28,6 +28,13 @@ type BroadcastMessage = MoveMessage | JoinMessage | LeaveMessage;
 // JWT 検証（HS256）
 // ────────────────────────────────────────────
 
+function decodeBase64Url(value: string): string {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const remainder = base64.length % 4;
+  const padded = remainder === 0 ? base64 : base64 + "=".repeat(4 - remainder);
+  return atob(padded);
+}
+
 async function verifyJwt(
   token: string,
   secret: string
@@ -47,14 +54,14 @@ async function verifyJwt(
     );
 
     const data = enc.encode(`${headerB64}.${payloadB64}`);
-    const signature = Uint8Array.from(atob(signatureB64.replace(/-/g, "+").replace(/_/g, "/")), (c) =>
+    const signature = Uint8Array.from(decodeBase64Url(signatureB64), (c) =>
       c.charCodeAt(0)
     );
 
     const valid = await crypto.subtle.verify("HMAC", key, signature, data);
     if (!valid) return null;
 
-    const payload = JSON.parse(atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/")));
+    const payload = JSON.parse(decodeBase64Url(payloadB64));
 
     // 有効期限チェック
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
