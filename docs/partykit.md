@@ -178,7 +178,7 @@ npm install -g wscat
 wscat -c "ws://localhost:1999/party/field-1?token=<accessToken>"
 
 # 移動メッセージを送信
-> {"type":"move","userId":"user-1","x":100,"y":200}
+> {"type":"move","x":100,"y":200}
 ```
 
 ### デプロイ
