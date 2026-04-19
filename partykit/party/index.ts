@@ -79,12 +79,24 @@ async function verifyJwt(
     const valid = await crypto.subtle.verify("HMAC", key, signature, data);
     if (!valid) return null;
 
-    const payload = JSON.parse(decodeBase64Url(payloadB64));
+    const payload = JSON.parse(decodeBase64Url(payloadB64)) as Record<
+      string,
+      unknown
+    >;
 
     // 有効期限チェック
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+    if (
+      typeof payload.exp === "number" &&
+      payload.exp < Math.floor(Date.now() / 1000)
+    ) {
+      return null;
+    }
 
-    return payload;
+    if (typeof payload.sub !== "string" || payload.sub.length === 0) {
+      return null;
+    }
+
+    return { sub: payload.sub };
   } catch {
     return null;
   }
