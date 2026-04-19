@@ -10,6 +10,24 @@ type UserState = {
   y: number;
 };
 
+const FIELD_MIN_X = 0;
+const FIELD_MAX_X = 5000;
+const FIELD_MIN_Y = 0;
+const FIELD_MAX_Y = 5000;
+
+function isValidCoordinate(
+  value: unknown,
+  min: number,
+  max: number,
+): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= min &&
+    value <= max
+  );
+}
+
 // フロントエンド → Partykit
 type MoveMessage = {
   type: "move";
@@ -148,6 +166,13 @@ export default class FieldRoom implements Party.Server {
       if (data.type === "move") {
         const user = this.users.get(sender.id);
         if (user) {
+          if (
+            !isValidCoordinate(data.x, FIELD_MIN_X, FIELD_MAX_X) ||
+            !isValidCoordinate(data.y, FIELD_MIN_Y, FIELD_MAX_Y)
+          ) {
+            return;
+          }
+
           // 座標を更新
           user.x = data.x;
           user.y = data.y;
