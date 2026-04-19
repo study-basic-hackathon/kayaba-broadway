@@ -82,6 +82,26 @@ export default class FieldRoom implements Party.Server {
 
   constructor(readonly room: Party.Room) {}
 
+  private hasUserConnection(userId: string): boolean {
+    return [...this.users.values()].some((user) => user.userId === userId);
+  }
+
+  private listUniqueUsers(excludeUserId?: string): UserState[] {
+    const usersByUserId = new Map<string, UserState>();
+
+    for (const user of this.users.values()) {
+      if (user.userId === excludeUserId) {
+        continue;
+      }
+
+      if (!usersByUserId.has(user.userId)) {
+        usersByUserId.set(user.userId, user);
+      }
+    }
+
+    return [...usersByUserId.values()];
+  }
+
   async onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
     const url = new URL(ctx.request.url);
     const token = url.searchParams.get("token");
@@ -101,23 +121,24 @@ export default class FieldRoom implements Party.Server {
     }
 
     const userId = payload.sub;
+    const hadExistingConnection = this.hasUserConnection(userId);
 
     // ルームに追加（初期座標は入口 (0, 0) 固定）
     const userState: UserState = { userId, x: 0, y: 0 };
     this.users.set(conn.id, userState);
 
-    // 接続したユーザーに現在の全ユーザー位置を返す（自分の接続は除く）
+    // 接続したユーザーに現在の全ユーザー位置を返す（同一 userId は重複除外し、自分自身は除く）
     const initMessage: InitMessage = {
       type: "init",
-      users: [...this.users.entries()]
-        .filter(([id]) => id !== conn.id)
-        .map(([, u]) => u),
+      users: this.listUniqueUsers(userId),
     };
     conn.send(JSON.stringify(initMessage));
 
-    // 他のユーザー全員に join を通知
-    const joinMessage: JoinMessage = { type: "join", userId, x: 0, y: 0 };
-    this.room.broadcast(JSON.stringify(joinMessage), [conn.id]);
+    // その userId の最初の接続時のみ、他のユーザー全員に join を通知
+    if (!hadExistingConnection) {
+      const joinMessage: JoinMessage = { type: "join", userId, x: 0, y: 0 };
+      this.room.broadcast(JSON.stringify(joinMessage), [conn.id]);
+    }
   }
 
   onMessage(message: string, sender: Party.Connection) {
@@ -149,10 +170,13 @@ export default class FieldRoom implements Party.Server {
   onClose(conn: Party.Connection) {
     const user = this.users.get(conn.id);
     if (user) {
-      // 他のユーザー全員に leave を通知
-      const leaveMessage: LeaveMessage = { type: "leave", userId: user.userId };
-      this.room.broadcast(JSON.stringify(leaveMessage));
       this.users.delete(conn.id);
+
+      // 同一 userId の接続がすべて閉じたときだけ leave を通知
+      if (!this.hasUserConnection(user.userId)) {
+        const leaveMessage: LeaveMessage = { type: "leave", userId: user.userId };
+        this.room.broadcast(JSON.stringify(leaveMessage));
+      }
     }
   }
 }
