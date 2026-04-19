@@ -112,8 +112,12 @@ export default class FieldRoom implements Party.Server {
 
   constructor(readonly room: Party.Room) {}
 
+  private findUserStateByUserId(userId: string): UserState | undefined {
+    return [...this.users.values()].find((user) => user.userId === userId);
+  }
+
   private hasUserConnection(userId: string): boolean {
-    return [...this.users.values()].some((user) => user.userId === userId);
+    return this.findUserStateByUserId(userId) !== undefined;
   }
 
   private listUniqueUsers(excludeUserId?: string): UserState[] {
@@ -151,10 +155,11 @@ export default class FieldRoom implements Party.Server {
     }
 
     const userId = payload.sub;
-    const hadExistingConnection = this.hasUserConnection(userId);
+    const existingUserState = this.findUserStateByUserId(userId);
+    const hadExistingConnection = existingUserState !== undefined;
 
-    // ルームに追加（初期座標は入口 (0, 0) 固定）
-    const userState: UserState = { userId, x: 0, y: 0 };
+    // 同一 userId の複数接続では同じ UserState を共有し、座標の正本を 1 つに保つ
+    const userState: UserState = existingUserState ?? { userId, x: 0, y: 0 };
     this.users.set(conn.id, userState);
 
     // 接続したユーザーに現在の全ユーザー位置を返す（同一 userId は重複除外し、自分自身は除く）
