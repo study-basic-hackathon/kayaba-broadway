@@ -87,7 +87,12 @@ export default class FieldRoom implements Party.Server {
     const token = url.searchParams.get("token");
 
     // JWT 検証
-    const secret = this.room.env.JWT_SECRET as string;
+    const secret = this.room.env.JWT_SECRET;
+    if (typeof secret !== "string" || secret.length === 0) {
+      conn.close(1011, "サーバー設定エラー: JWT_SECRET が未設定です");
+      return;
+    }
+
     const payload = token ? await verifyJwt(token, secret) : null;
 
     if (!payload) {
