@@ -144,9 +144,47 @@ export default class FieldRoom implements Party.Server {
     return [...usersByUserId.values()];
   }
 
+  private extractBearerToken(authorizationHeader: string | null): string | null {
+    if (!authorizationHeader) {
+      return null;
+    }
+
+    const [scheme, token] = authorizationHeader.trim().split(/\s+/, 2);
+    if (scheme?.toLowerCase() !== "bearer" || !token) {
+      return null;
+    }
+
+    return token;
+  }
+
+  private getTokenFromConnectionRequest(request: Request): string | null {
+    const bearerToken = this.extractBearerToken(
+      request.headers.get("Authorization"),
+    );
+    if (bearerToken) {
+      return bearerToken;
+    }
+
+    const protocolsHeader = request.headers.get("Sec-WebSocket-Protocol");
+    if (!protocolsHeader) {
+      return null;
+    }
+
+    for (const protocol of protocolsHeader.split(",")) {
+      const trimmedProtocol = protocol.trim();
+      if (trimmedProtocol.startsWith("bearer.")) {
+        const token = trimmedProtocol.slice("bearer.".length);
+        if (token.length > 0) {
+          return token;
+        }
+      }
+    }
+
+    return null;
+  }
+
   async onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
-    const url = new URL(ctx.request.url);
-    const token = url.searchParams.get("token");
+    const token = this.getTokenFromConnectionRequest(ctx.request);
 
     // JWT 検証
     const secret = this.room.env.JWT_SECRET;
@@ -158,7 +196,10 @@ export default class FieldRoom implements Party.Server {
     const payload = token ? await verifyJwt(token, secret) : null;
 
     if (!payload) {
-      conn.close(4001, "認証失敗: 無効なトークンです");
+      conn.close(
+        4001,
+        "認証失敗: Authorization ヘッダーまたは Sec-WebSocket-Protocol から有効なトークンを指定してください",
+      );
       return;
     }
 
