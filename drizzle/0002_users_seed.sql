@@ -1,0 +1,5 @@
+INSERT INTO users (email, password_hash, display_name, created_at) VALUES ('tanaka.shun@example.com', '7af59a5f-f671-415a-bf65-30e98f513f0e:g/l66tEMR+shkAJHxc3rZ+TpgbMfv2snsjGmykjP3OM=', '田中俊', unixepoch());
+INSERT INTO users (email, password_hash, display_name, created_at) VALUES ('yamamoto.hana@example.com', '8c2291a7-e48a-4797-9f34-560fb7fbc59a:0FatKs/Kc/DhkJeUWjgxX0BalLGpheq3NOX4tJo34AU=', '山本花', unixepoch());
+INSERT INTO users (email, password_hash, display_name, created_at) VALUES ('sato.kenji@example.com', '1dfd4650-b509-4299-90a4-79e2bd208442:kUcjNySK11DAtyuoFl3EU6lKtO+SwpJNo7FY6iXYidc=', '佐藤健二', unixepoch());
+INSERT INTO users (email, password_hash, display_name, created_at) VALUES ('inoue.mika@example.com', '3ddc110b-59b5-450a-8717-75c5a166cfb7:AOSn1csKk9ZktJnTAww0jDqyD6eGNhXj+VyTyQJhs5k=', '井上美香', unixepoch());
+INSERT INTO users (email, password_hash, display_name, created_at) VALUES ('kobayashi.ryo@example.com', 'ed28ca22-98fc-441e-a2a9-3a940d550724:ZDBkhZXKx2GF3A5FCLP1mxHyiIJsJBpAzt4m+8+JLPg=', '小林涼', unixepoch());

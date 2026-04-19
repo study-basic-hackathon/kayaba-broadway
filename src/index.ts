@@ -5,7 +5,7 @@ import type { JwtVariables } from "hono/jwt";
 import { jwt } from "hono/jwt";
 import { Bindings } from "./types";
 import { ALG } from "./constants";
-import auth from "./routes/auth";
+import { createAuthRouter } from "./routes/auth";
 import users from "./routes/users";
 import shops from "./routes/shops";
 import products from "./routes/products";
@@ -31,7 +31,7 @@ app.use(
   }),
 );
 
-app.route("/auth", auth);
+app.route("/auth", createAuthRouter());
 app.route("/users", users);
 app.route("/shops", shops);
 app.route("/products", products);
