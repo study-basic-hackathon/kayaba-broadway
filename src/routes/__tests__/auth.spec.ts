@@ -3,9 +3,8 @@ import { vi, afterEach, beforeEach, describe, expect, test } from "vitest";
 import { users } from "../../db/schema";
 import { hashPassword } from "../../utils/hash";
 import { createAuthRouter } from "../auth";
-import { createTestDb } from "./helpers/db";
-
-const ENV = { JWT_SECRET: "test-secret" };
+import { createTestDb } from "./utils/db";
+import { ENV } from "./constants";
 
 function registerRequest(
   auth: ReturnType<typeof createAuthRouter>,

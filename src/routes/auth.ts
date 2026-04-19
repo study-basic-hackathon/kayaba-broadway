@@ -21,12 +21,6 @@ export function createAuthRouter(db?: AnyDB) {
 
   const getDb = (c: Context<{ Bindings: Bindings }>) => db ?? drizzle(c.env.DB);
 
-  // app.get("/users", async (c) => {
-  //   const db = getDb(c);
-  //   const result = await db.select().from(users).all();
-  //   return c.json(result);
-  // });
-
   const registerSchema = z
     .object({
       display_name: z.string(),

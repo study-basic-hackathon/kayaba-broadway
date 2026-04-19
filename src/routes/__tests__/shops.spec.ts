@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from "vitest";
 import app from "../../index";
-
-const ENV = { JWT_SECRET: "test-secret" };
+import { getAccessToken } from "./utils/token";
+import { ENV } from "./constants";
 
 function getShopsRequest(accessToken?: string) {
   return app.request(
@@ -34,26 +34,6 @@ function getShopProductsRequest(id: string, accessToken: string) {
     },
     ENV,
   );
-}
-
-async function getAccessToken() {
-  const loginRes = await app.request(
-    "/auth/login",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: "shun@example.com",
-        password: "1234",
-      }),
-    },
-    ENV,
-  );
-  const { accessToken } = (await loginRes.json()) as { accessToken: string };
-  if (loginRes.status !== 200 || !accessToken) {
-    throw new Error("アクセストークンの取得に失敗しました");
-  }
-  return accessToken;
 }
 
 let accessToken = "";

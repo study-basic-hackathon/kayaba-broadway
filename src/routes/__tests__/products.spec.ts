@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 import app from "../../index";
 import { Product } from "../../types";
-
-const ENV = { JWT_SECRET: "test-secret" };
+import { getAccessToken } from "./utils/token";
+import { ENV } from "./constants";
 
 function getProductRequest(id: string, accessToken?: string) {
   return app.request(
@@ -13,23 +13,6 @@ function getProductRequest(id: string, accessToken?: string) {
     },
     ENV,
   );
-}
-
-async function getAccessToken() {
-  const loginRes = await app.request(
-    "/auth/login",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: "shun@example.com",
-        password: "1234",
-      }),
-    },
-    ENV,
-  );
-  const { accessToken } = (await loginRes.json()) as { accessToken: string };
-  return accessToken;
 }
 
 describe("GET:/products/:id", () => {
