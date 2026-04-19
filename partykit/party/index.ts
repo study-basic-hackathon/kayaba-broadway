@@ -31,16 +31,21 @@ function isValidCoordinate(
 // フロントエンド → Partykit
 type MoveMessage = {
   type: "move";
-  userId: string;
   x: number;
   y: number;
 };
 
 // Partykit → フロントエンド
+type MoveBroadcastMessage = {
+  type: "move";
+  userId: string;
+  x: number;
+  y: number;
+};
 type JoinMessage = { type: "join"; userId: string; x: number; y: number };
 type LeaveMessage = { type: "leave"; userId: string };
 type InitMessage = { type: "init"; users: UserState[] };
-type BroadcastMessage = MoveMessage | JoinMessage | LeaveMessage;
+type BroadcastMessage = MoveBroadcastMessage | JoinMessage | LeaveMessage;
 
 // ────────────────────────────────────────────
 // JWT 検証（HS256）
