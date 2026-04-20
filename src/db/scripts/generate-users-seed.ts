@@ -1,4 +1,4 @@
-import { hashPassword } from "../utils/hash";
+import { hashPassword } from "../../utils/hash";
 
 const users = [
   { email: "tanaka.shun@example.com", displayName: "田中俊" },

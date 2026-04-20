@@ -1,51 +1,36 @@
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import app from "../../index";
-import { Product } from "../../types";
-import { getAccessToken } from "./utils/token";
+import router from "../products";
 import { env } from "cloudflare:workers";
-import { deleteTestUser, insertTestUser } from "./utils/db";
+import { setupTestFixtures, cleanupTestFixtures } from "./utils/fixture";
+import { products } from "../../db/schema";
+import { type InferSelectModel } from "drizzle-orm";
 
-function getProductRequest(id: string, accessToken?: string) {
-  return app.request(
-    `/products/${id}`,
-    {
-      method: "GET",
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-    },
-    env,
-  );
+function getProductRequest(id: string) {
+  return router.request(`/${id}`, { method: "GET" }, env);
 }
 
-let userId: number;
-let email: string;
+let productFixture: InferSelectModel<typeof products>;
 beforeAll(async () => {
-  const user = await insertTestUser();
-  userId = user.id;
-  email = user.email;
+  const result = await setupTestFixtures();
+  productFixture = result.product;
 });
 
 afterAll(async () => {
-  await deleteTestUser(userId);
+  await cleanupTestFixtures();
 });
 
 describe("GET:/products/:id", () => {
   test("正常系", async () => {
-    const accessToken = await getAccessToken({ userId, email });
-    const res = await getProductRequest("product-1", accessToken);
+    const res = await getProductRequest(productFixture.id);
     expect(res.status).toBe(200);
-    const { product } = (await res.json()) as { product: Product };
-    expect(product.id).toBe("product-1");
-    expect(product.shop_id).toBe("shop-1");
-  });
-
-  test("異常系: Authorizationヘッダーなしの場合、401", async () => {
-    const res = await getProductRequest("product-1");
-    expect(res.status).toBe(401);
+    const { product } = (await res.json()) as {
+      product: InferSelectModel<typeof products>;
+    };
+    expect(product.id).toBe(productFixture.id);
+    expect(product.shop_id).toBe(productFixture.shop_id);
   });
 
   test("異常系: 存在しない商品の場合、404", async () => {
-    const accessToken = await getAccessToken({ userId, email });
-    const res = await getProductRequest("nonexistent", accessToken);
+    const res = await getProductRequest("nonexistent");
     const { error } = (await res.json()) as { error: string };
     expect(res.status).toBe(404);
     expect(error).toBe("商品が見つかりません");

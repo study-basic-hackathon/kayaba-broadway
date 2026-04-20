@@ -1,7 +1,9 @@
 import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   email: text("email").notNull().unique(),
   password_hash: text("password_hash").notNull(),
   display_name: text("display_name").notNull(),
@@ -12,8 +14,10 @@ export const users = sqliteTable("users", {
 });
 
 export const refreshTokens = sqliteTable("refresh_tokens", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  user_id: integer("user_id")
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  user_id: text("user_id")
     .notNull()
     .references(() => users.id),
   token: text("token").notNull().unique(),
@@ -24,7 +28,9 @@ export const refreshTokens = sqliteTable("refresh_tokens", {
 });
 
 export const fields = sqliteTable("fields", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   description: text("description"),
   background_url: text("background_url"),
@@ -36,19 +42,26 @@ export const fields = sqliteTable("fields", {
 });
 
 export const shops = sqliteTable("shops", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  field_id: integer("field_id")
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  field_id: text("field_id")
     .notNull()
     .references(() => fields.id),
   name: text("name").notNull(),
   description: text("description"),
   position_x: integer("position_x").notNull(),
   position_y: integer("position_y").notNull(),
+  created_at: integer("created_at")
+    .notNull()
+    .$defaultFn(() => Math.floor(Date.now() / 1000)),
 });
 
 export const products = sqliteTable("products", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  shop_id: integer("shop_id")
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  shop_id: text("shop_id")
     .notNull()
     .references(() => shops.id),
   name: text("name").notNull(),
@@ -62,11 +75,13 @@ export const products = sqliteTable("products", {
 });
 
 export const purchases = sqliteTable("purchases", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  user_id: integer("user_id")
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  user_id: text("user_id")
     .notNull()
     .references(() => users.id),
-  product_id: integer("product_id")
+  product_id: text("product_id")
     .notNull()
     .references(() => products.id),
   purchased_at: integer("purchased_at")

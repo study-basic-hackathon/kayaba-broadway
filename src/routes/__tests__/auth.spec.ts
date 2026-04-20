@@ -5,7 +5,7 @@ import {
   insertTestUser,
   deleteTestUser,
   isExistTestRefreshToken,
-} from "./utils/db";
+} from "./utils/fixture";
 import { env } from "cloudflare:workers";
 
 function registerRequest(body: object) {
@@ -59,8 +59,8 @@ describe("POST:/register", () => {
       confirm_password: "password",
     });
     expect(res.status).toBe(200);
-    const { id } = (await res.json()) as { id: number };
-    await deleteTestUser(id);
+    const { user } = (await res.json()) as { user: { id: string } };
+    await deleteTestUser(user.id);
   });
 
   test("異常系:メールアドレスが登録済みの場合重複エラー", async () => {
@@ -76,8 +76,8 @@ describe("POST:/register", () => {
     const secondRes = await registerRequest(registerBody);
     expect(secondRes.status).toBe(409);
 
-    const { id } = (await firstRes.json()) as { id: number };
-    await deleteTestUser(id);
+    const { user } = (await firstRes.json()) as { user: { id: string } };
+    await deleteTestUser(user.id);
   });
 });
 

@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1776517244941,
-      "tag": "0000_sour_ken_ellis",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1776525147099,
-      "tag": "0001_fantastic_dazzler",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1776589334303,
-      "tag": "0002_jittery_ironclad",
+      "when": 1776686739743,
+      "tag": "0000_wild_mentor",
       "breakpoints": true
     }
   ]

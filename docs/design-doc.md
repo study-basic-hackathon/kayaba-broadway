@@ -149,26 +149,27 @@
 
 > 現時点では「茅場ブロードウェイ」の1フィールドのみ存在するが、将来的に複数空間へ拡張できるよう独立テーブルとして管理する。
 
-| カラム名          | 型          | 説明                                          |
-| ----------------- | ----------- | --------------------------------------------- |
-| id                | TEXT (UUID) | 主キー                                        |
-| name              | TEXT        | フィールド名（例: "茅場ブロードウェイ"）     |
-| description       | TEXT        | フィールドの説明                              |
-| background_url    | TEXT        | 背景画像URL（R2パス）                         |
-| width             | INTEGER     | フィールドの横幅（タイル数またはピクセル数）  |
-| height            | INTEGER     | フィールドの縦幅（タイル数またはピクセル数）  |
-| created_at        | INTEGER     | 作成日時（Unix時刻）                          |
+| カラム名       | 型          | 説明                                         |
+| -------------- | ----------- | -------------------------------------------- |
+| id             | TEXT (UUID) | 主キー                                       |
+| name           | TEXT        | フィールド名（例: "茅場ブロードウェイ"）     |
+| description    | TEXT        | フィールドの説明                             |
+| background_url | TEXT        | 背景画像URL（R2パス）                        |
+| width          | INTEGER     | フィールドの横幅（タイル数またはピクセル数） |
+| height         | INTEGER     | フィールドの縦幅（タイル数またはピクセル数） |
+| created_at     | INTEGER     | 作成日時（Unix時刻）                         |
 
 ### shops（店舗）
 
-| カラム名    | 型          | 説明                                   |
-| ----------- | ----------- | -------------------------------------- |
-| id          | TEXT (UUID) | 主キー                                 |
-| field_id    | TEXT        | 所属フィールドID（FK → fields.id）     |
-| name        | TEXT        | 店舗名                                 |
-| description | TEXT        | 店舗説明                               |
-| position_x  | INTEGER     | フィールド上のX座標                    |
-| position_y  | INTEGER     | フィールド上のY座標                    |
+| カラム名    | 型          | 説明                               |
+| ----------- | ----------- | ---------------------------------- |
+| id          | TEXT (UUID) | 主キー                             |
+| field_id    | TEXT        | 所属フィールドID（FK → fields.id） |
+| name        | TEXT        | 店舗名                             |
+| description | TEXT        | 店舗説明                           |
+| position_x  | INTEGER     | フィールド上のX座標                |
+| position_y  | INTEGER     | フィールド上のY座標                |
+| created_at  | INTEGER     | 作成日時（Unix時刻）               |
 
 ### products（商品）
 
@@ -181,7 +182,7 @@
 | price         | INTEGER     | 価格（円）                        |
 | file_url      | TEXT        | ダウンロードファイルURL（R2パス） |
 | thumbnail_url | TEXT        | サムネイル画像URL                 |
-| created_at    | INTEGER     | 作成日時                          |
+| created_at    | INTEGER     | 作成日時（Unix時刻）              |
 
 ### purchases（購入履歴）
 
@@ -190,7 +191,7 @@
 | id             | TEXT (UUID) | 主キー                          |
 | user_id        | TEXT        | 購入者ID（FK）                  |
 | product_id     | TEXT        | 商品ID（FK）                    |
-| purchased_at   | INTEGER     | 購入日時                        |
+| purchased_at   | INTEGER     | 購入日時（Unix時刻）            |
 | payment_status | TEXT        | `mock` / `completed` / `failed` |
 
 ---

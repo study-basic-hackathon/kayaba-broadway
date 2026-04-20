@@ -13,7 +13,7 @@ import { hashPassword, verifyPassword } from "../utils/hash";
 const ACCESS_TOKEN_EXPIRES_IN = 60 * 15;
 const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24 * 7;
 
-const route = new Hono<{ Bindings: Bindings }>();
+const router = new Hono<{ Bindings: Bindings }>();
 
 const registerSchema = z
   .object({
@@ -27,7 +27,7 @@ const registerSchema = z
     path: ["confirm_password"],
   });
 
-route.post("/register", zValidator("json", registerSchema), async (c) => {
+router.post("/register", zValidator("json", registerSchema), async (c) => {
   const { display_name, email, password } = c.req.valid("json");
   const db = drizzle(c.env.DB);
 
@@ -48,7 +48,7 @@ route.post("/register", zValidator("json", registerSchema), async (c) => {
     .returning();
 
   const { password_hash: _, ...safeUser } = result;
-  return c.json(safeUser);
+  return c.json({ user: safeUser });
 });
 
 const loginSchema = z.object({
@@ -56,7 +56,7 @@ const loginSchema = z.object({
   password: z.string(),
 });
 
-route.post("/login", zValidator("json", loginSchema), async (c) => {
+router.post("/login", zValidator("json", loginSchema), async (c) => {
   const { email, password } = c.req.valid("json");
 
   const db = drizzle(c.env.DB);
@@ -131,7 +131,7 @@ route.post("/login", zValidator("json", loginSchema), async (c) => {
   return c.json({ accessToken });
 });
 
-route.post("/refresh", async (c) => {
+router.post("/refresh", async (c) => {
   const refreshToken = getCookie(c, "refreshToken");
 
   if (!refreshToken) {
@@ -173,4 +173,4 @@ route.post("/refresh", async (c) => {
   }
 });
 
-export default route;
+export default router;

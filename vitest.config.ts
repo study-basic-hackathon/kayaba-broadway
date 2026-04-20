@@ -20,7 +20,8 @@ export default defineConfig({
     }),
   ],
   test: {
-    setupFiles: ["./src/routes/__tests__/setup.ts"],
+    globals: true,
+    setupFiles: ["./src/routes/__tests__/utils/setup.ts"],
     exclude: ["frontend/**", "node_modules/**"],
   },
 });

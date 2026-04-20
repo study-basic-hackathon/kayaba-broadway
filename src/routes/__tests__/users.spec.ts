@@ -1,24 +1,16 @@
 import { env } from "cloudflare:workers";
-import {
-  vi,
-  beforeAll,
-  describe,
-  expect,
-  test,
-  afterEach,
-  afterAll,
-} from "vitest";
 import app from "../../index";
-import { deleteTestUser, insertTestUser } from "./utils/db";
-import { getAccessToken } from "./utils/token";
+import { setupTestFixtures, cleanupTestFixtures } from "./utils/fixture";
+import { users } from "../../db/schema";
+import { InferSelectModel } from "drizzle-orm";
 
-let userId: number;
-let email: string;
+let userFixture: InferSelectModel<typeof users>;
+let accessTokenFixture: string;
 
 beforeAll(async () => {
-  const user = await insertTestUser();
-  userId = user.id;
-  email = user.email;
+  const result = await setupTestFixtures();
+  userFixture = result.user;
+  accessTokenFixture = result.accessToken;
 });
 
 afterEach(() => {
@@ -26,29 +18,33 @@ afterEach(() => {
 });
 
 afterAll(async () => {
-  await deleteTestUser(userId);
+  await cleanupTestFixtures();
 });
 
 describe("GET:/users/me", () => {
   test("正常系", async () => {
-    const accessToken = await getAccessToken({ userId, email });
     const res = await app.request(
-      "/users/me",
+      "users/me",
       {
         method: "GET",
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: {
+          Authorization: `Bearer ${accessTokenFixture}`,
+        },
       },
       env,
     );
 
     expect(res.status).toBe(200);
-    const json = (await res.json()) as { email: string };
-    expect(json.email).toBe(email);
+    const data = (await res.json()) as { user: { email: string } };
+    expect(data.user.email).toBe(userFixture.email);
+  });
+
+  test("異常系:アクセストークン未指定の場合401エラー", async () => {
+    const res = await app.request("/users/me", { method: "GET" }, env);
+    expect(res.status).toBe(401);
   });
 
   test("異常系:アクセストークンの有効期限切れの場合401エラー", async () => {
-    const accessToken = await getAccessToken({ userId, email });
-
     vi.useFakeTimers();
     vi.setSystemTime(Date.now() + 1000 * 60 * 15);
 
@@ -56,7 +52,9 @@ describe("GET:/users/me", () => {
       "/users/me",
       {
         method: "GET",
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: {
+          Authorization: `Bearer ${accessTokenFixture}`,
+        },
       },
       env,
     );
