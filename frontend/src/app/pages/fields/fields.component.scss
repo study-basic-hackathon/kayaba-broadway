@@ -1,7 +1,9 @@
+@use '../../../styles/variables' as *;
+
 .layout {
   display: flex;
   min-height: 100vh;
-  background: linear-gradient(135deg, #eb5e28, #ee15a6);
+  background: $gradient-bg;
   padding: 16px;
   gap: 12px;
 }
@@ -68,9 +70,9 @@
     color: #333;
 
     &.active {
-      background: #e8622a;
+      background: $primary;
       color: white;
-      border-color: #e8622a;
+      border-color: $primary;
     }
   }
 }

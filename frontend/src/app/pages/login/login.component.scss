@@ -1,9 +1,11 @@
+@use '../../../styles/variables' as *;
+
 .container {
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #eb5e28, #ee15a6);
+  background: $gradient-bg;
 }
 
 .card {
@@ -53,7 +55,7 @@
 }
 
 button {
-  background: #e8622a;
+  background: $primary;
   color: white;
   border: none;
   border-radius: 999px;
