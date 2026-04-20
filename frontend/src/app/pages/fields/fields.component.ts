@@ -1,37 +1,33 @@
-import { Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
-  selector: 'app-login',
+  selector: 'app-fields',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [CommonModule],
   templateUrl: './fields.component.html',
   styleUrl: './fields.component.scss',
 })
-export class FieldsComponent {
-  constructor(private router: Router) {}
+export class FieldsComponent implements OnInit {
+  auth = inject(AuthService);
 
-  // email = '';
-  // password = '';
-  // error = '';
+  fields: any[] = [];
+  labels = ['Label', 'Label', 'Label', 'Label', 'Label'];
+  activeLabel = 1;
 
-  // async onSubmit() {
-  //   const res = await fetch('http://localhost:8787/auth/login', {
-  //     method: 'POST',
-  //     headers: { 'Content-Type': 'application/json' },
-  //     body: JSON.stringify({ email: this.email, password: this.password }),
-  //     credentials: 'include',
-  //   });
+  ngOnInit() {
+    const accessToken = localStorage.getItem('accessToken');
 
-  //   if (!res.ok) {
-  //     const { error } = await res.json();
-  //     this.error = error;
-  //     return;
-  //   }
+    fetch('http://localhost:8787/fields', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((res) => res.json())
+      .catch((error) => console.log(error))
+      .then((data) => {
+        console.log(data);
+      });
 
-  //   const { accessToken } = await res.json();
-  //   this.router.navigate(['/field']);
-  // }
+    this.fields = Array(23).fill({ title: 'Title', updated: 'Updated 2 days ago' });
+  }
 }

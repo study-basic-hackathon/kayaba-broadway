@@ -1,3 +1,41 @@
-<div class="container">
-  <div>tst</div>
+<div class="layout">
+  <aside class="sidebar">
+    <button class="sidebar-btn">
+      <span class="icon">✏️</span>
+      <span>イベント作成</span>
+    </button>
+    <button class="sidebar-btn active">
+      <span class="icon">⭐</span>
+      <span>会場一覧</span>
+    </button>
+    <button class="sidebar-btn">
+      <span class="icon">⭐</span>
+      <span>アカウント</span>
+    </button>
+  </aside>
+
+  <main class="main">
+    <div class="card">
+      <h1>茅場ブロードウェイ会場一覧</h1>
+
+      <div class="labels">
+        <button
+          *ngFor="let label of labels; let i = index"
+          class="label-btn"
+          [class.active]="activeLabel === i"
+          (click)="activeLabel = i"
+        >
+          <span *ngIf="activeLabel === i">✓ </span>{{ label }}
+        </button>
+      </div>
+
+      <div class="grid">
+        <div class="item" *ngFor="let field of fields">
+          <div class="thumbnail"></div>
+          <p class="title">{{ field.title }}</p>
+          <p class="updated">{{ field.updated }}</p>
+        </div>
+      </div>
+    </div>
+  </main>
 </div>

@@ -1,21 +1,46 @@
 <div class="container">
-  <form class="card" (ngSubmit)="onSubmit()">
+  <form class="card" (ngSubmit)="onSubmit()" #loginForm="ngForm">
     <h1>ログイン</h1>
 
     <div class="field">
       <label>メールアドレス</label>
-      <input type="email" [(ngModel)]="email" name="email" placeholder="xxxxxx@mail.com" required />
+      <input
+        type="email"
+        [(ngModel)]="email"
+        name="email"
+        placeholder="xxxxxx@mail.com"
+        required
+        email
+        #emailField="ngModel"
+      />
+      <p class="error" *ngIf="emailField.invalid && emailField.touched">
+        <span *ngIf="emailField.errors?.['required']">メールアドレスを入力してください</span>
+        <span *ngIf="emailField.errors?.['email']">メールアドレスの形式が正しくありません</span>
+      </p>
     </div>
 
     <div class="field">
       <label>パスワード</label>
-      <input type="password" [(ngModel)]="password" name="password" placeholder="xxxxxx" required />
+      <input
+        type="password"
+        [(ngModel)]="password"
+        name="password"
+        placeholder="xxxxxx"
+        required
+        #passwordField="ngModel"
+      />
+      <p class="error" *ngIf="passwordField.invalid && passwordField.touched">
+        <span *ngIf="passwordField.errors?.['required']">パスワードを入力してください</span>
+      </p>
     </div>
 
-    <p class="error" *ngIf="error">{{ error }}</p>
-
-    <button type="submit">ログインする</button>
-
+    <button
+      type="submit"
+      [disabled]="loginForm.invalid || isLoading()"
+      [class.loading]="isLoading()"
+    >
+      {{ isLoading() ? 'ログイン中' : 'ログインする' }}
+    </button>
     <a href="#">アカウントがない場合</a>
   </form>
 </div>
