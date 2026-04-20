@@ -1,0 +1,13 @@
+<!-- login.component.html -->
+<form (ngSubmit)="onSubmit()">
+  <div>
+    <label>メールアドレス</label>
+    <input type="email" [(ngModel)]="email" name="email" required />
+  </div>
+  <div>
+    <label>パスワード</label>
+    <input type="password" [(ngModel)]="password" name="password" required />
+  </div>
+  <p *ngIf="error">{{ error }}</p>
+  <button type="submit">ログイン</button>
+</form>
