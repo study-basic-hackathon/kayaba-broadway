@@ -8,18 +8,18 @@
 
 ## エンドポイント一覧
 
-| メソッド | パス | 認証 | 概要 |
-| --- | --- | --- | --- |
-| POST | `/auth/login` | 不要 | ログインしてアクセストークン・リフレッシュトークンを取得 |
-| POST | `/auth/refresh` | 不要 | リフレッシュトークンからアクセストークンを再発行 |
-| GET | `/users/me` | 必要 | ログイン中ユーザー情報を取得 |
-| GET | `/fields` | 必要 | フィールド一覧を取得 |
-| GET | `/fields/:id` | 必要 | フィールド詳細を取得（背景画像URLを含む） |
-| GET | `/fields/:id/shops` | 必要 | 指定フィールドの店舗一覧を取得 |
-| GET | `/shops` | 必要 | 店舗一覧を取得 |
-| GET | `/shops/:id` | 必要 | 店舗詳細を取得 |
-| GET | `/shops/:id/products` | 必要 | 指定店舗の商品一覧を取得 |
-| GET | `/products/:id` | 必要 | 商品詳細を取得 |
+| メソッド | パス                  | 認証 | 概要                                                     |
+| -------- | --------------------- | ---- | -------------------------------------------------------- |
+| POST     | `/auth/login`         | 不要 | ログインしてアクセストークン・リフレッシュトークンを取得 |
+| POST     | `/auth/refresh`       | 不要 | リフレッシュトークンからアクセストークンを再発行         |
+| GET      | `/users/me`           | 必要 | ログイン中ユーザー情報を取得                             |
+| GET      | `/fields`             | 必要 | フィールド一覧を取得                                     |
+| GET      | `/fields/:id`         | 必要 | フィールド詳細を取得（背景画像URLを含む）                |
+| GET      | `/fields/:id/shops`   | 必要 | 指定フィールドの店舗一覧を取得                           |
+| GET      | `/shops`              | 必要 | 店舗一覧を取得                                           |
+| GET      | `/shops/:id`          | 必要 | 店舗詳細を取得                                           |
+| GET      | `/shops/:id/products` | 必要 | 指定店舗の商品一覧を取得                                 |
+| GET      | `/products/:id`       | 必要 | 商品詳細を取得                                           |
 
 ## curl例
 
@@ -39,9 +39,7 @@ curl -X POST "http://localhost:8787/auth/login" \
 ```bash
 curl -X POST "http://localhost:8787/auth/refresh" \
   -H "Content-Type: application/json" \
-  -d '{
-    "refreshToken": "<refreshToken>"
-  }'
+  -H "Cookie: refreshToken=<refreshToken>" \
 ```
 
 ### 3. ログイン中ユーザー取得

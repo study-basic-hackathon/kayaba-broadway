@@ -120,7 +120,7 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
     expires_at: refreshTokenExpiresAt,
   });
 
-  setCookie(c, "refreshToken", refreshToken, {
+  setCookie(c, "re  freshToken", refreshToken, {
     httpOnly: true,
     secure: c.env.ENVIRONMENT === "production",
     sameSite: "Strict",

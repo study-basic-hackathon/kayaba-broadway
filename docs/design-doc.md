@@ -145,6 +145,17 @@
 | icon_url      | TEXT        | アイコン画像URL（R2パス）  |
 | created_at    | INTEGER     | 作成日時（Unix時刻）       |
 
+### refresh_tokens（リフレッシュトークン）
+
+| カラム名     | 型          | 説明                              |
+| ------------ | ----------- | --------------------------------- |
+| id           | TEXT (UUID) | 主キー                            |
+| user_id      | TEXT        | 所属フィールドID（FK → users.id） |
+| token        | TEXT        | リフレッシュトークン              |
+| display_name | TEXT        | 表示名                            |
+| expires_at   | INTEGER     | 有効期限日時（Unix時刻）          |
+| created_at   | INTEGER     | 作成日時（Unix時刻）              |
+
 ### fields（フィールド／仮想空間）
 
 > 現時点では「茅場ブロードウェイ」の1フィールドのみ存在するが、将来的に複数空間へ拡張できるよう独立テーブルとして管理する。
