@@ -30,7 +30,7 @@ curl -X POST "http://localhost:8787/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "shun@example.com",
-    "password": "1234"
+    "password": "password"
   }'
 ```
 

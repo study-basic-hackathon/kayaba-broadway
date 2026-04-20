@@ -46,6 +46,11 @@ npx wrangler d1 migrations list kayaba-broadway --local
 
 - `.wrangler/state/v3/d1/***.sqlite`ファイルを開き、テーブルやレコードが存在することを確認してください。
 
+**4. （任意）ログイン動作確認**
+api-endpoints.mdの`1. ログイン（トークン取得）`コマンドを実行してください。
+パスワードはすべて`password`です。
+初期登録ユーザの情報は`drizzle\0001_seeder.sql`をご確認ください。
+
 ---
 
 ## リモート環境へのマイグレーション
