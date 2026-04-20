@@ -6,14 +6,13 @@ import { sign, verify } from "hono/jwt";
 import { z } from "zod";
 import { ALG } from "../constants";
 import { users, refreshTokens } from "../db/schema";
-import { Bindings } from "../types";
 import { setCookie, getCookie } from "hono/cookie";
 import { hashPassword, verifyPassword } from "../utils/hash";
 
 const ACCESS_TOKEN_EXPIRES_IN = 60 * 15;
 const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24 * 7;
 
-const router = new Hono<{ Bindings: Bindings }>();
+const router = new Hono<{ Bindings: Env }>();
 
 const registerSchema = z
   .object({
@@ -29,7 +28,7 @@ const registerSchema = z
 
 router.post("/register", zValidator("json", registerSchema), async (c) => {
   const { display_name, email, password } = c.req.valid("json");
-  const db = drizzle(c.env.DB);
+  const db = drizzle(c.env.DB!);
 
   const existing = await db
     .select()
@@ -59,7 +58,7 @@ const loginSchema = z.object({
 router.post("/login", zValidator("json", loginSchema), async (c) => {
   const { email, password } = c.req.valid("json");
 
-  const db = drizzle(c.env.DB);
+  const db = drizzle(c.env.DB!);
   const user = await db
     .select()
     .from(users)
@@ -138,7 +137,7 @@ router.post("/refresh", async (c) => {
     return c.json({ error: "リフレッシュトークンがありません" }, 401);
   }
 
-  const db = drizzle(c.env.DB);
+  const db = drizzle(c.env.DB!);
   const stored = await db
     .select()
     .from(refreshTokens)

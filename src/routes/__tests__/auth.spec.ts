@@ -1,5 +1,4 @@
 import { decode } from "hono/jwt";
-import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import auth from "../auth";
 import {
   insertTestUser,

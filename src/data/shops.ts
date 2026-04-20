@@ -1,6 +1,7 @@
-import { Shop } from "../types";
+import { InferSelectModel } from "drizzle-orm";
+import { shops } from "../db/schema";
 
-export const shopList: Shop[] = [
+export const shopList: InferSelectModel<typeof shops>[] = [
   {
     id: "shop-1",
     field_id: "field-1",
@@ -8,5 +9,6 @@ export const shopList: Shop[] = [
     description: "同人誌・デジタルコンテンツを幅広く取り扱うお店です。",
     position_x: 100,
     position_y: 150,
+    created_at: 1744000000,
   },
 ];

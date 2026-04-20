@@ -1,6 +1,6 @@
-import { Product } from "../types";
-
-export const productList: Product[] = [
+import { InferSelectModel } from "drizzle-orm";
+import { products } from "../db/schema";
+export const productList: InferSelectModel<typeof products>[] = [
   {
     id: "product-1",
     shop_id: "shop-1",
