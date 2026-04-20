@@ -1,15 +1,14 @@
 import { decode } from "hono/jwt";
-import { vi, afterEach, beforeEach, describe, expect, test } from "vitest";
-import { users } from "../../db/schema";
-import { hashPassword } from "../../utils/hash";
-import { createAuthRouter } from "../auth";
-import { createTestDb } from "./utils/db";
-import { ENV } from "./constants";
+import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import auth from "../auth";
+import {
+  insertTestUser,
+  deleteTestUser,
+  isExistTestRefreshToken,
+} from "./utils/db";
+import { env } from "cloudflare:workers";
 
-function registerRequest(
-  auth: ReturnType<typeof createAuthRouter>,
-  body: object,
-) {
+function registerRequest(body: object) {
   return auth.request(
     "/register",
     {
@@ -19,11 +18,11 @@ function registerRequest(
       },
       body: JSON.stringify(body),
     },
-    ENV,
+    env,
   );
 }
 
-function loginRequest(auth: ReturnType<typeof createAuthRouter>, body: object) {
+function loginRequest(body: object) {
   return auth.request(
     "/login",
     {
@@ -33,14 +32,11 @@ function loginRequest(auth: ReturnType<typeof createAuthRouter>, body: object) {
       },
       body: JSON.stringify(body),
     },
-    ENV,
+    env,
   );
 }
 
-function accessTokenRefreshRequest(
-  auth: ReturnType<typeof createAuthRouter>,
-  refreshToken: string,
-) {
+function accessTokenRefreshRequest(refreshToken: string) {
   return auth.request(
     "/refresh",
     {
@@ -50,74 +46,64 @@ function accessTokenRefreshRequest(
         Cookie: `refreshToken=${refreshToken}`,
       },
     },
-    ENV,
+    env,
   );
 }
 
 describe("POST:/register", () => {
-  let auth: ReturnType<typeof createAuthRouter>;
-
-  beforeEach(() => {
-    const testDb = createTestDb();
-    auth = createAuthRouter(testDb);
-  });
-
   test("正常系", async () => {
-    const res = await registerRequest(auth, {
+    const res = await registerRequest({
       display_name: "testUser",
       email: "test@example.com",
       password: "password",
       confirm_password: "password",
     });
     expect(res.status).toBe(200);
+    const { id } = (await res.json()) as { id: number };
+    await deleteTestUser(id);
   });
 
   test("異常系:メールアドレスが登録済みの場合重複エラー", async () => {
     const registerBody = {
-      display_name: "testUser",
-      email: "test@example.com",
+      display_name: "dupUser",
+      email: "dup@example.com",
       password: "password",
       confirm_password: "password",
     };
 
-    const firstRes = await registerRequest(auth, registerBody);
+    const firstRes = await registerRequest(registerBody);
     expect(firstRes.status).toBe(200);
-    const secondRes = await registerRequest(auth, registerBody);
+    const secondRes = await registerRequest(registerBody);
     expect(secondRes.status).toBe(409);
+
+    const { id } = (await firstRes.json()) as { id: number };
+    await deleteTestUser(id);
   });
 });
 
 describe("POST:/login", () => {
-  let auth: ReturnType<typeof createAuthRouter>;
-
-  beforeEach(async () => {
-    const testDb = createTestDb();
-    auth = createAuthRouter(testDb);
-
-    await testDb.insert(users).values({
-      email: "test@example.com",
-      password_hash: await hashPassword("password"),
-      display_name: "testUser",
-    });
-  });
-
   test("正常系", async () => {
-    const res = await loginRequest(auth, {
-      email: "test@example.com",
-      password: "password",
+    const email = "test@example.com";
+    const password = "password";
+    const user = await insertTestUser({ email, password });
+    const res = await loginRequest({
+      email,
+      password,
     });
     expect(res.status).toBe(200);
     const { accessToken } = (await res.json()) as {
       accessToken: string;
     };
     expect(accessToken).toMatch(/^[\w-]+\.[\w-]+\.[\w-]+$/);
+    await deleteTestUser(user.id);
   });
 
   test("異常系:存在しないユーザの場合認証失敗", async () => {
-    const res = await loginRequest(auth, {
+    const res = await loginRequest({
       email: "nouser@example.com",
       password: "password",
     });
+
     const { error } = (await res.json()) as { error: string };
     expect(res.status).toBe(401);
     expect(error).toBe("メールアドレスまたはパスワードが違います");
@@ -125,38 +111,33 @@ describe("POST:/login", () => {
 });
 
 describe("POST:/refresh", () => {
-  let auth: ReturnType<typeof createAuthRouter>;
-  beforeEach(async () => {
-    const testDb = createTestDb();
-    auth = createAuthRouter(testDb);
-    await testDb.insert(users).values({
-      email: "test@example.com",
-      password_hash: await hashPassword("password"),
-      display_name: "testUser",
-    });
-  });
-
   afterEach(() => {
     vi.useRealTimers();
   });
 
   test("正常系", async () => {
-    const loginRes = await loginRequest(auth, {
-      email: "test@example.com",
-      password: "password",
+    const email = "test@example.com";
+    const password = "password";
+    const user = await insertTestUser({ email, password });
+    const loginRes = await loginRequest({
+      email,
+      password,
     });
 
     const { accessToken: prevAccessToken } = (await loginRes.json()) as {
       accessToken: string;
     };
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    vi.useFakeTimers();
+
+    // 初回取得と再取得のaccessTokenのexpの差を1秒以上にするため1000m秒進める
+    vi.advanceTimersByTime(1000);
 
     const setCookieHeader = loginRes.headers.get("Set-Cookie");
     const refreshToken = setCookieHeader?.match(/refreshToken=([^;]+)/)?.[1];
     expect(refreshToken).toBeDefined();
 
-    const refreshRes = await accessTokenRefreshRequest(auth, refreshToken!);
+    const refreshRes = await accessTokenRefreshRequest(refreshToken!);
     const { accessToken: newAccessToken } = (await refreshRes.json()) as {
       accessToken: string;
     };
@@ -167,10 +148,11 @@ describe("POST:/refresh", () => {
     const { payload: newPayload } = decode(newAccessToken);
 
     expect(newPayload.exp!).toBeGreaterThan(prevPayload.exp!);
+    await deleteTestUser(user.id);
   });
 
   test("異常系:DBにリフレッシュトークンが存在しない場合トークン無効エラー", async () => {
-    const refreshRes = await accessTokenRefreshRequest(auth, "noExistToken");
+    const refreshRes = await accessTokenRefreshRequest("noExistToken");
     expect(refreshRes.status).toBe(401);
 
     const json = (await refreshRes.json()) as {
@@ -180,7 +162,8 @@ describe("POST:/refresh", () => {
   });
 
   test("異常系:リフレッシュトークンが有効期限切れの場合有効期限切れエラー", async () => {
-    const loginRes = await loginRequest(auth, {
+    const user = await insertTestUser();
+    const loginRes = await loginRequest({
       email: "test@example.com",
       password: "password",
     });
@@ -191,12 +174,17 @@ describe("POST:/refresh", () => {
     vi.useFakeTimers();
     vi.setSystemTime(Date.now() + 1000 * 60 * 60 * 24 * 8);
 
-    const refreshRes = await accessTokenRefreshRequest(auth, refreshToken!);
+    const refreshRes = await accessTokenRefreshRequest(refreshToken!);
     expect(refreshRes.status).toBe(401);
 
     const json = (await refreshRes.json()) as {
       error: string;
     };
     expect(json.error).toBe("トークンの有効期限が切れています");
+
+    const isExistToken = await isExistTestRefreshToken(user.id);
+    expect(isExistToken).toBe(false);
+
+    await deleteTestUser(user.id);
   });
 });

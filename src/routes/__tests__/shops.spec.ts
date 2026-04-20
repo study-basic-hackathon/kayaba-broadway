@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, test } from "vitest";
+import { env } from "cloudflare:workers";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import app from "../../index";
+import { deleteTestUser, insertTestUser } from "./utils/db";
 import { getAccessToken } from "./utils/token";
-import { ENV } from "./constants";
 
 function getShopsRequest(accessToken?: string) {
   return app.request(
@@ -10,7 +11,7 @@ function getShopsRequest(accessToken?: string) {
       method: "GET",
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
     },
-    ENV,
+    env,
   );
 }
 
@@ -21,7 +22,7 @@ function getShopRequest(id: string, accessToken: string) {
       method: "GET",
       headers: { Authorization: `Bearer ${accessToken}` },
     },
-    ENV,
+    env,
   );
 }
 
@@ -32,18 +33,25 @@ function getShopProductsRequest(id: string, accessToken: string) {
       method: "GET",
       headers: { Authorization: `Bearer ${accessToken}` },
     },
-    ENV,
+    env,
   );
 }
 
-let accessToken = "";
-
+let userId: number;
+let email: string;
 beforeAll(async () => {
-  accessToken = await getAccessToken();
+  const user = await insertTestUser();
+  userId = user.id;
+  email = user.email;
+});
+
+afterAll(async () => {
+  await deleteTestUser(userId);
 });
 
 describe("GET:/shops", () => {
   test("正常系", async () => {
+    const accessToken = await getAccessToken({ userId, email });
     const res = await getShopsRequest(accessToken);
     expect(res.status).toBe(200);
     const { shops: shopList } = (await res.json()) as { shops: unknown[] };
@@ -59,6 +67,7 @@ describe("GET:/shops", () => {
 
 describe("GET:/shops/:id", () => {
   test("正常系", async () => {
+    const accessToken = await getAccessToken({ userId, email });
     const res = await getShopRequest("shop-1", accessToken);
     expect(res.status).toBe(200);
     const { shop } = (await res.json()) as {
@@ -69,6 +78,7 @@ describe("GET:/shops/:id", () => {
   });
 
   test("異常系: 存在しない店舗の場合、404", async () => {
+    const accessToken = await getAccessToken({ userId, email });
     const res = await getShopRequest("nonexistent", accessToken);
     const { error } = (await res.json()) as { error: string };
     expect(res.status).toBe(404);
@@ -78,6 +88,7 @@ describe("GET:/shops/:id", () => {
 
 describe("GET:/shops/:id/products", () => {
   test("正常系", async () => {
+    const accessToken = await getAccessToken({ userId, email });
     const res = await getShopProductsRequest("shop-1", accessToken);
     expect(res.status).toBe(200);
     const { products } = (await res.json()) as { products: unknown[] };
@@ -86,6 +97,7 @@ describe("GET:/shops/:id/products", () => {
   });
 
   test("異常系: 存在しない店舗の場合、404", async () => {
+    const accessToken = await getAccessToken({ userId, email });
     const res = await getShopProductsRequest("nonexistent", accessToken);
     const { error } = (await res.json()) as { error: string };
     expect(res.status).toBe(404);

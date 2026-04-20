@@ -1,10 +1,10 @@
 import { describe, expect, test } from "vitest";
 import router from "../fields";
-import { ENV } from "./constants";
+import { env } from "cloudflare:workers";
 
 describe("GET:/fields", () => {
   test("正常系: フィールド一覧を返す", async () => {
-    const res = await router.request("/", { method: "GET" }, ENV);
+    const res = await router.request("/", { method: "GET" }, env);
     expect(res.status).toBe(200);
     const data = (await res.json()) as { fields: unknown[] };
     expect(Array.isArray(data.fields)).toBe(true);
@@ -14,7 +14,7 @@ describe("GET:/fields", () => {
 
 describe("GET:/fields/:id", () => {
   test("正常系: 指定IDのフィールドを返す", async () => {
-    const res = await router.request("/field-1", { method: "GET" }, ENV);
+    const res = await router.request("/field-1", { method: "GET" }, env);
     expect(res.status).toBe(200);
     const data = (await res.json()) as {
       field: { id: string; name: string; background_url: string };
@@ -25,7 +25,7 @@ describe("GET:/fields/:id", () => {
   });
 
   test("異常系: 存在しないIDは404", async () => {
-    const res = await router.request("/nonexistent", { method: "GET" }, ENV);
+    const res = await router.request("/nonexistent", { method: "GET" }, env);
     expect(res.status).toBe(404);
     const data = (await res.json()) as { error: string };
     expect(data.error).toBe("フィールドが見つかりません");
@@ -34,7 +34,7 @@ describe("GET:/fields/:id", () => {
 
 describe("GET:/fields/:id/shops", () => {
   test("正常系: フィールドに所属する店舗一覧を返す", async () => {
-    const res = await router.request("/field-1/shops", { method: "GET" }, ENV);
+    const res = await router.request("/field-1/shops", { method: "GET" }, env);
     expect(res.status).toBe(200);
     const data = (await res.json()) as {
       shops: { id: string; field_id: string }[];
@@ -47,7 +47,7 @@ describe("GET:/fields/:id/shops", () => {
     const res = await router.request(
       "/nonexistent/shops",
       { method: "GET" },
-      ENV,
+      env,
     );
     expect(res.status).toBe(404);
     const data = (await res.json()) as { error: string };

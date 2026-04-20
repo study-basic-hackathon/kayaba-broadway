@@ -22,3 +22,59 @@ export const refreshTokens = sqliteTable("refresh_tokens", {
     .notNull()
     .$defaultFn(() => Math.floor(Date.now() / 1000)),
 });
+
+export const fields = sqliteTable("fields", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  description: text("description"),
+  background_url: text("background_url"),
+  width: integer("width").notNull(),
+  height: integer("height").notNull(),
+  created_at: integer("created_at")
+    .notNull()
+    .$defaultFn(() => Math.floor(Date.now() / 1000)),
+});
+
+export const shops = sqliteTable("shops", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  field_id: integer("field_id")
+    .notNull()
+    .references(() => fields.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  position_x: integer("position_x").notNull(),
+  position_y: integer("position_y").notNull(),
+});
+
+export const products = sqliteTable("products", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  shop_id: integer("shop_id")
+    .notNull()
+    .references(() => shops.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  price: integer("price").notNull(),
+  file_url: text("file_url").notNull(),
+  thumbnail_url: text("thumbnail_url").notNull(),
+  created_at: integer("created_at")
+    .notNull()
+    .$defaultFn(() => Math.floor(Date.now() / 1000)),
+});
+
+export const purchases = sqliteTable("purchases", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  user_id: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  product_id: integer("product_id")
+    .notNull()
+    .references(() => products.id),
+  purchased_at: integer("purchased_at")
+    .notNull()
+    .$defaultFn(() => Math.floor(Date.now() / 1000)),
+  payment_status: text("payment_status", {
+    enum: ["mock", "completed", "failed"],
+  })
+    .notNull()
+    .default("mock"),
+});
