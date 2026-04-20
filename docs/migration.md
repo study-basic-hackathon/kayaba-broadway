@@ -42,6 +42,10 @@ drizzle/
 npx wrangler d1 migrations list kayaba-broadway --local
 ```
 
+もしくは
+
+- `.wrangler/state/v3/d1/***.sqlite`ファイルを開き、テーブルやレコードが存在することを確認してください。
+
 ---
 
 ## リモート環境へのマイグレーション
