@@ -12,7 +12,13 @@ import fields from "./routes/fields";
 
 const app = new Hono<{ Variables: JwtVariables; Bindings: Env }>();
 
-app.use("/*", cors());
+app.use(
+  "/*",
+  cors({
+    origin: "http://localhost:4200",
+    credentials: true,
+  }),
+);
 
 const factory = createFactory<{ Bindings: Env }>();
 app.use(

@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [FormsModule, CommonModule],
   templateUrl: './login.component.html',
+  styleUrl: './login.component.scss',
 })
 export class LoginComponent {
   email = '';
@@ -18,7 +19,7 @@ export class LoginComponent {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: this.email, password: this.password }),
-      credentials: 'include', // Cookieを送受信するために必要
+      credentials: 'include',
     });
 
     if (!res.ok) {
@@ -28,7 +29,6 @@ export class LoginComponent {
     }
 
     const { accessToken } = await res.json();
-    // accessTokenをメモリに保存する処理
     console.log(accessToken);
   }
 }
