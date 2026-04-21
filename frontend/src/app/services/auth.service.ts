@@ -27,4 +27,16 @@ export class AuthService {
   logout() {
     localStorage.removeItem('accessToken');
   }
+
+  getAccessToken() {
+    return localStorage.getItem('accessToken');
+  }
+
+  async refresh() {
+    return this.http.post<{ accessToken: string }>(
+      'http://localhost:8787/auth/refresh',
+      {},
+      { withCredentials: true },
+    );
+  }
 }
