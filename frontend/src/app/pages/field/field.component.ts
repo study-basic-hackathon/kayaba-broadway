@@ -10,8 +10,4 @@ import { CommonModule } from '@angular/common';
 })
 export class FieldComponent implements OnInit {
   ngOnInit() {}
-
-  onClick() {
-    alert('クリック！');
-  }
 }
