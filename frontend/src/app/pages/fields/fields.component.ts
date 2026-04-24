@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-fields',
@@ -15,6 +16,7 @@ export class FieldsComponent implements OnInit {
   auth = inject(AuthService);
   http = inject(HttpClient);
   router = inject(Router);
+  cdr = inject(ChangeDetectorRef);
 
   fields: any[] = [];
   labels = ['Label', 'Label', 'Label'];
@@ -22,14 +24,17 @@ export class FieldsComponent implements OnInit {
 
   ngOnInit() {
     this.http.get('http://localhost:8787/fields').subscribe({
-      next: (data) => console.log(data),
+      next: (data: any) => {
+        this.fields = data.fields;
+        this.cdr.detectChanges();
+      },
       error: (error) => console.log(error),
     });
 
-    this.fields = Array(1).fill({ title: 'Title', updated: 'Updated 2 days ago' });
+    // this.fields = Array(1).fill({ title: 'Title', updated: 'Updated 2 days ago' });
   }
 
-  onClick() {
-    this.router.navigate(['/field']);
+  onClick(id: string) {
+    this.router.navigate(['/field'], { queryParams: { id } });
   }
 }
