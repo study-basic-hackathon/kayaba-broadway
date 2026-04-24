@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-fields',
@@ -13,9 +14,10 @@ import { HttpClient } from '@angular/common/http';
 export class FieldsComponent implements OnInit {
   auth = inject(AuthService);
   http = inject(HttpClient);
+  router = inject(Router);
 
   fields: any[] = [];
-  labels = ['Label', 'Label', 'Label', 'Label', 'Label'];
+  labels = ['Label', 'Label', 'Label'];
   activeLabel = 1;
 
   ngOnInit() {
@@ -24,6 +26,10 @@ export class FieldsComponent implements OnInit {
       error: (error) => console.log(error),
     });
 
-    this.fields = Array(23).fill({ title: 'Title', updated: 'Updated 2 days ago' });
+    this.fields = Array(1).fill({ title: 'Title', updated: 'Updated 2 days ago' });
+  }
+
+  onClick() {
+    this.router.navigate(['/field']);
   }
 }

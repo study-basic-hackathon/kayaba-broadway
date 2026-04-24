@@ -23,14 +23,14 @@
           *ngFor="let label of labels; let i = index"
           class="label-btn"
           [class.active]="activeLabel === i"
-          (click)="activeLabel = i"
+          (click)="(activeLabel)"
         >
           <span *ngIf="activeLabel === i">✓ </span>{{ label }}
         </button>
       </div>
 
       <div class="grid">
-        <div class="item" *ngFor="let field of fields">
+        <div class="item" *ngFor="let field of fields" (click)="onClick()">
           <div class="thumbnail"></div>
           <p class="title">{{ field.title }}</p>
           <p class="updated">{{ field.updated }}</p>
