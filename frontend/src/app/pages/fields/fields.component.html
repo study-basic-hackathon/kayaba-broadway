@@ -31,7 +31,10 @@
 
       <div class="grid">
         <div class="item" *ngFor="let field of fields" (click)="onClick(field.id)">
-          <div class="thumbnail"></div>
+          <div
+            class="thumbnail"
+            [style.background-image]="'url(' + field.background_url + ')'"
+          ></div>
           <p class="title">{{ field.name }}</p>
         </div>
       </div>

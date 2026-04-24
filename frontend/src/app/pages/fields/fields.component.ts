@@ -30,8 +30,6 @@ export class FieldsComponent implements OnInit {
       },
       error: (error) => console.log(error),
     });
-
-    // this.fields = Array(1).fill({ title: 'Title', updated: 'Updated 2 days ago' });
   }
 
   onClick(id: string) {
