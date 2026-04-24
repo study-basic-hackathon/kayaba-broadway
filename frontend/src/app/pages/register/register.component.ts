@@ -6,25 +6,27 @@ import { AuthService } from '../../services/auth.service';
 import { toast } from 'ngx-sonner';
 
 @Component({
-  selector: 'app-login',
+  selector: 'app-register',
   standalone: true,
   imports: [FormsModule, CommonModule, RouterLink],
-  templateUrl: './login.component.html',
-  styleUrl: './login.component.scss',
+  templateUrl: './register.component.html',
+  styleUrl: './register.component.scss',
 })
-export class LoginComponent {
+export class RegisterComponent {
   private router = inject(Router);
   private auth = inject(AuthService);
 
+  displayName = '';
   email = '';
   password = '';
+  confirmPassword = '';
   isLoading = signal(false);
 
   async onSubmit() {
     this.isLoading.set(true);
     try {
-      await this.auth.login(this.email, this.password);
-      this.router.navigate(['/fields']);
+      await this.auth.register(this.displayName, this.email, this.password, this.confirmPassword);
+      this.router.navigate(['/fields'], { replaceUrl: true });
     } catch (error) {
       toast.error((error as Error).message);
     } finally {

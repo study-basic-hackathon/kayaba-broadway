@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { eq, and, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { Hono } from "hono";
+import { Hono, Context } from "hono";
 import { sign, verify } from "hono/jwt";
 import { z } from "zod";
 import { ALG } from "../constants";
@@ -40,14 +40,55 @@ router.post("/register", zValidator("json", registerSchema), async (c) => {
     return c.json({ error: "このメールアドレスはすでに登録されています" }, 409);
   }
 
+  if (!c.env.JWT_SECRET) {
+    console.error("JWT_SECRET is not set");
+    return c.json({ error: "サーバーエラー" }, 500);
+  }
+
   const password_hash = await hashPassword(password);
   const [result] = await db
     .insert(users)
     .values({ email, display_name, password_hash })
     .returning();
 
-  const { password_hash: _, ...safeUser } = result;
-  return c.json({ user: safeUser });
+  const nowUnix = Math.floor(Date.now() / 1000);
+
+  const accessToken = await sign(
+    {
+      id: result.id,
+      email: result.email,
+      exp: nowUnix + ACCESS_TOKEN_EXPIRES_IN,
+    },
+    c.env.JWT_SECRET,
+    ALG,
+  );
+
+  const refreshTokenExpiresAt = nowUnix + REFRESH_TOKEN_EXPIRES_IN;
+  const refreshToken = await sign(
+    {
+      id: result.id,
+      email: result.email,
+      type: "refresh",
+      exp: refreshTokenExpiresAt,
+    },
+    c.env.JWT_SECRET,
+    ALG,
+  );
+
+  await db.insert(refreshTokens).values({
+    user_id: result.id,
+    token: refreshToken,
+    expires_at: refreshTokenExpiresAt,
+  });
+
+  setCookie(c, "refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: c.env.ENVIRONMENT === "production",
+    sameSite: "Strict",
+    maxAge: REFRESH_TOKEN_EXPIRES_IN,
+  });
+
+  return c.json({ accessToken });
 });
 
 const loginSchema = z.object({
