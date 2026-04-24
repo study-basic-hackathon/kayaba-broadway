@@ -15,9 +15,8 @@ export class AuthService {
         { email, password },
         { withCredentials: true },
       );
-
       const res = await firstValueFrom(obs$);
-      localStorage.setItem('accessToken', res.accessToken);
+      this.setAccessToken(res.accessToken);
     } catch (e) {
       const error = e as HttpErrorResponse;
       throw new Error(error.error?.error ?? 'ログインに失敗しました');
@@ -32,7 +31,11 @@ export class AuthService {
     return localStorage.getItem('accessToken');
   }
 
-  async refresh() {
+  setAccessToken(token: string) {
+    localStorage.setItem('accessToken', token);
+  }
+
+  refresh() {
     return this.http.post<{ accessToken: string }>(
       'http://localhost:8787/auth/refresh',
       {},
