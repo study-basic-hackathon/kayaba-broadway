@@ -66,7 +66,7 @@ export function authInterceptor(
       return auth.refresh().pipe(
         switchMap((res) => {
           tokenRefresh.completeRefreshing(res.accessToken);
-          auth.setAccessToken(res.accessToken);
+          auth.setAuth(res.accessToken, res.user);
           const newReq = req.clone({
             headers: req.headers.set('Authorization', `Bearer ${res.accessToken}`),
           });

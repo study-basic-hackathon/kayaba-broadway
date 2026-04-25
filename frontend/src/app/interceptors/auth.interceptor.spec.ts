@@ -11,7 +11,7 @@ describe('authInterceptor', () => {
   let httpTesting: HttpTestingController;
   let authService: {
     getAccessToken: ReturnType<typeof vi.fn>;
-    setAccessToken: ReturnType<typeof vi.fn>;
+    setAuth: ReturnType<typeof vi.fn>;
     refresh: ReturnType<typeof vi.fn>;
   };
   let router: { navigate: ReturnType<typeof vi.fn> };
@@ -19,7 +19,7 @@ describe('authInterceptor', () => {
   beforeEach(() => {
     authService = {
       getAccessToken: vi.fn(),
-      setAccessToken: vi.fn(),
+      setAuth: vi.fn(),
       refresh: vi.fn(),
     };
     router = {

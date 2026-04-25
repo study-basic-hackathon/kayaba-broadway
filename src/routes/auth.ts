@@ -88,7 +88,9 @@ router.post("/register", zValidator("json", registerSchema), async (c) => {
     maxAge: REFRESH_TOKEN_EXPIRES_IN,
   });
 
-  return c.json({ accessToken });
+  const { password_hash: _, ...user } = result;
+
+  return c.json({ accessToken, user });
 });
 
 const loginSchema = z.object({
@@ -100,17 +102,17 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
   const { email, password } = c.req.valid("json");
 
   const db = drizzle(c.env.DB!);
-  const user = await db
+  const storedUser = await db
     .select()
     .from(users)
     .where(eq(users.email, email))
     .get();
 
-  if (!user) {
+  if (!storedUser) {
     return c.json({ error: "メールアドレスまたはパスワードが違います" }, 401);
   }
 
-  const isValid = await verifyPassword(password, user.password_hash);
+  const isValid = await verifyPassword(password, storedUser.password_hash);
 
   if (!isValid) {
     return c.json({ error: "メールアドレスまたはパスワードが違います" }, 401);
@@ -125,8 +127,8 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
 
   const accessToken = await sign(
     {
-      id: user.id,
-      email: user.email,
+      id: storedUser.id,
+      email: storedUser.email,
       exp: nowUnix + ACCESS_TOKEN_EXPIRES_IN,
     },
     c.env.JWT_SECRET,
@@ -136,8 +138,8 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
   const refreshTokenExpiresAt = nowUnix + REFRESH_TOKEN_EXPIRES_IN;
   const refreshToken = await sign(
     {
-      id: user.id,
-      email: user.email,
+      id: storedUser.id,
+      email: storedUser.email,
       type: "refresh",
       exp: refreshTokenExpiresAt,
     },
@@ -150,13 +152,13 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
     .delete(refreshTokens)
     .where(
       and(
-        eq(refreshTokens.user_id, user.id),
+        eq(refreshTokens.user_id, storedUser.id),
         lt(refreshTokens.expires_at, nowUnix),
       ),
     );
 
   await db.insert(refreshTokens).values({
-    user_id: user.id,
+    user_id: storedUser.id,
     token: refreshToken,
     expires_at: refreshTokenExpiresAt,
   });
@@ -168,7 +170,9 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
     maxAge: REFRESH_TOKEN_EXPIRES_IN,
   });
 
-  return c.json({ accessToken });
+  const { password_hash: _, ...user } = storedUser;
+
+  return c.json({ accessToken, user });
 });
 
 router.post("/refresh", async (c) => {
@@ -207,8 +211,18 @@ router.post("/refresh", async (c) => {
       c.env.JWT_SECRET,
       ALG,
     );
-    return c.json({ accessToken });
-  } catch {
+
+    const storedUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, payload.id as string))
+      .get();
+
+    const { password_hash: _, ...user } = storedUser!;
+
+    return c.json({ accessToken, user });
+  } catch (error) {
+    console.log(error);
     return c.json({ error: "無効なトークン" }, 401);
   }
 });

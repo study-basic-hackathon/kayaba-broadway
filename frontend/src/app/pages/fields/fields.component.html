@@ -1,17 +1,46 @@
 <div class="layout">
   <aside class="sidebar">
-    <button class="sidebar-btn">
+    <button
+      class="sidebar-btn"
+      [class.active]="activeNav() === 'create'"
+      (click)="activeNav.set('create')"
+    >
       <span class="icon">✏️</span>
       <span>イベント作成</span>
     </button>
-    <button class="sidebar-btn active">
+    <button
+      class="sidebar-btn"
+      [class.active]="activeNav() === 'fields'"
+      (click)="activeNav.set('fields')"
+    >
       <span class="icon">⭐</span>
       <span>会場一覧</span>
     </button>
-    <button class="sidebar-btn">
-      <span class="icon">⭐</span>
-      <span>アカウント</span>
-    </button>
+
+    <div class="account-menu-wrapper">
+      <button
+        class="sidebar-btn"
+        [class.active]="activeNav() === 'account'"
+        (click)="activeNav.set('account'); toggleMenu()"
+      >
+        <span class="icon">⭐</span>
+        <span>アカウント</span>
+      </button>
+
+      <div class="account-menu" *ngIf="isMenuOpen()">
+        <div class="menu-header">
+          <div class="avatar">N</div>
+          <div>
+            <p class="name">{{ auth.user()?.display_name }}</p>
+            <p class="email">{{ auth.user()?.email }}</p>
+          </div>
+        </div>
+        <div class="menu-items">
+          <button class="menu-item">⚙️ 設定</button>
+          <button class="menu-item danger" (click)="logout()">🚪 ログアウト</button>
+        </div>
+      </div>
+    </div>
   </aside>
 
   <main class="main">
@@ -30,7 +59,7 @@
       </div>
 
       <div class="grid">
-        <div class="item" *ngFor="let field of fields" (click)="onClick(field.id)">
+        <div class="item" *ngFor="let field of fields()" (click)="onClick(field.id)">
           <div
             class="thumbnail"
             [style.background-image]="'url(' + field.background_url + ')'"

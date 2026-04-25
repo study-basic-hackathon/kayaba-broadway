@@ -1,6 +1,18 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+
+interface User {
+  id: string;
+  email: string;
+  display_name: string;
+  icon_url: string;
+}
+
+interface AuthResponse {
+  user: User;
+  accessToken: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -8,15 +20,27 @@ import { firstValueFrom } from 'rxjs';
 export class AuthService {
   http = inject(HttpClient);
 
+  private currentUser = signal<User | null>(null);
+  user = this.currentUser.asReadonly();
+
+  async initializeUser() {
+    try {
+      const res = await firstValueFrom(this.refresh());
+      this.setAuth(res.accessToken, res.user);
+    } catch {
+      this.currentUser.set(null);
+    }
+  }
+
   async register(display_name: string, email: string, password: string, confirm_password: string) {
     try {
-      const obs$ = this.http.post<{ accessToken: string }>(
+      const obs$ = this.http.post<AuthResponse>(
         'http://localhost:8787/auth/register',
         { display_name, email, password, confirm_password },
         { withCredentials: true },
       );
       const res = await firstValueFrom(obs$);
-      this.setAccessToken(res.accessToken);
+      this.setAuth(res.accessToken, res.user);
     } catch (e) {
       const error = e as HttpErrorResponse;
       throw new Error(error.error?.error ?? 'アカウント作成に失敗しました');
@@ -25,13 +49,13 @@ export class AuthService {
 
   async login(email: string, password: string) {
     try {
-      const obs$ = this.http.post<{ accessToken: string }>(
+      const obs$ = this.http.post<AuthResponse>(
         'http://localhost:8787/auth/login',
         { email, password },
         { withCredentials: true },
       );
       const res = await firstValueFrom(obs$);
-      this.setAccessToken(res.accessToken);
+      this.setAuth(res.accessToken, res.user);
     } catch (e) {
       const error = e as HttpErrorResponse;
       throw new Error(error.error?.error ?? 'ログインに失敗しました');
@@ -46,12 +70,13 @@ export class AuthService {
     return localStorage.getItem('accessToken');
   }
 
-  setAccessToken(token: string) {
+  setAuth(token: string, user: User) {
     localStorage.setItem('accessToken', token);
+    this.currentUser.set(user);
   }
 
   refresh() {
-    return this.http.post<{ accessToken: string }>(
+    return this.http.post<AuthResponse>(
       'http://localhost:8787/auth/refresh',
       {},
       { withCredentials: true },
