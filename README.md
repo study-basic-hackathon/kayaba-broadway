@@ -19,9 +19,9 @@ npm install
 cd frontend && npm install
 ```
 
-### 2. 環境変数の設定（バックエンド）
+### 2. 環境変数の設定
 
-`.dev.vars.example` をコピーして `.dev.vars` を作成し、値を埋める。
+**バックエンド**: `.dev.vars.example` をコピーして `.dev.vars` を作成し、値を埋める。
 
 ```bash
 cp .dev.vars.example .dev.vars
@@ -30,6 +30,17 @@ cp .dev.vars.example .dev.vars
 ```bash
 # .dev.vars
 JWT_SECRET=your_secret_here
+```
+
+**Partykit**: `partykit/.env.example` をコピーして `partykit/.env` を作成し、値を埋める。
+
+```bash
+cp partykit/.env.example partykit/.env
+```
+
+```bash
+# partykit/.env
+JWT_SECRET=your_secret_here  # バックエンドと同じ値を設定する
 ```
 
 ## 起動

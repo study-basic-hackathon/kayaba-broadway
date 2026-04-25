@@ -34,10 +34,6 @@
   ],
   "compounds": [
     {
-      "name": "フロント + バック 同時起動",
-      "configurations": ["バックエンド (wrangler dev)", "フロントエンド (ng serve)"]
-    },
-    {
       "name": "フロント + バック + Partykit 同時起動",
       "configurations": ["バックエンド (wrangler dev)", "フロントエンド (ng serve)", "Partykit (partykit dev)"]
     }
