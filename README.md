@@ -43,9 +43,18 @@ npm run dev
 
 **フロントエンド**（`frontend/` ディレクトリ）:
 
-```txt
+```bash
 cd frontend
 npm run start
+# http://localhost:4200
+```
+
+**Partykit**（`partykit/` ディレクトリ）:
+
+```bash
+cd partykit
+npm run dev
+# ws://localhost:1999
 ```
 
 ### VS Code から起動する場合
@@ -56,7 +65,9 @@ npm run start
 | ------ | ---- |
 | `バックエンド (wrangler dev)` | バックエンドのみ起動（`http://localhost:8787`） |
 | `フロントエンド (ng serve)` | フロントエンドのみ起動（`http://localhost:4200`） |
-| `フロント + バック 同時起動` | 両方を同時に起動（上記2つのcompound） |
+| `Partykit (partykit dev)` | Partykitのみ起動（`ws://localhost:1999`） |
+| `フロント + バック 同時起動` | バックエンドとフロントエンドを同時に起動 |
+| `フロント + バック + Partykit 同時起動` | 3つすべてを同時に起動 |
 
 ## デプロイ
 
