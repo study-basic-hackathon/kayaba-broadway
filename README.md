@@ -1,20 +1,25 @@
 # 茅場ブロードウェイ
 
-仮想空間（2Dマップ）を自由に歩き回りながら、デジタルコンテンツ（PDF同人誌等）を購入できるオンラインマーケットサービス。
+仮想空間（2Dマップ）を歩き回りながらデジタルコンテンツを購入できるオンラインマーケット。
+
+- **バックエンド**: Hono + Drizzle ORM（Cloudflare Workers）
+- **フロントエンド**: Angular + PixiJS
 
 ---
 
 ## バックエンド（`/`）
 
-Hono + Drizzle ORM による REST API。Cloudflare Workers 上で動作する。
+バックエンドとフロントエンドそれぞれで依存関係をインストールする。
 
-### セットアップ
-
-```bash
+```txt
+# バックエンド（ルートディレクトリ）
 npm install
+
+# フロントエンド
+cd frontend && npm install
 ```
 
-### 環境変数の設定
+### 2. 環境変数の設定（バックエンド）
 
 `.dev.vars.example` をコピーして `.dev.vars` を作成し、値を埋める。
 
@@ -27,16 +32,43 @@ cp .dev.vars.example .dev.vars
 JWT_SECRET=your_secret_here
 ```
 
-### 開発サーバー起動
+## 起動
+
+**バックエンド**（ルートディレクトリ）:
 
 ```bash
 npm run dev
 # http://localhost:8787
 ```
 
-### テスト
+**フロントエンド**（`frontend/` ディレクトリ）:
 
-```bash
+```txt
+cd frontend
+npm run start
+```
+
+### VS Code から起動する場合
+
+`.vscode/launch.json` に起動設定が用意されている。VS Code の「実行とデバッグ」パネルから以下を選択して起動できる。
+
+| 設定名 | 説明 |
+| ------ | ---- |
+| `バックエンド (wrangler dev)` | バックエンドのみ起動（`http://localhost:8787`） |
+| `フロントエンド (ng serve)` | フロントエンドのみ起動（`http://localhost:4200`） |
+| `フロント + バック 同時起動` | 両方を同時に起動（上記2つのcompound） |
+
+## デプロイ
+
+```txt
+npm run deploy
+```
+
+## テスト
+
+バックエンドのテストを実行する。
+
+```txt
 npx vitest run
 ```
 

@@ -1,18 +1,26 @@
 import { Hono } from "hono";
-import { productList } from "../data/products";
-import { Bindings } from "../types";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
+import { products } from "../db/schema";
 
-const products = new Hono<{ Bindings: Bindings }>();
+const router = new Hono<{ Bindings: Env }>();
 
-products.get("/:id", (c) => {
+router.get("/:id", async (c) => {
   const { id } = c.req.param();
-  const product = productList.find((p) => p.id === id);
 
-  if (!product) {
+  const db = drizzle(c.env.DB!);
+
+  const productRecord = await db
+    .select()
+    .from(products)
+    .where(eq(products.id, id))
+    .get();
+
+  if (!productRecord) {
     return c.json({ error: "商品が見つかりません" }, 404);
   }
 
-  return c.json({ product });
+  return c.json({ product: productRecord });
 });
 
-export default products;
+export default router;

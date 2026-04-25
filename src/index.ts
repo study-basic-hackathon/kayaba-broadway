@@ -3,7 +3,6 @@ import { cors } from "hono/cors";
 import { createFactory } from "hono/factory";
 import type { JwtVariables } from "hono/jwt";
 import { jwt } from "hono/jwt";
-import { Bindings } from "./types";
 import { ALG } from "./constants";
 import auth from "./routes/auth";
 import users from "./routes/users";
@@ -11,11 +10,17 @@ import shops from "./routes/shops";
 import products from "./routes/products";
 import fields from "./routes/fields";
 
-const app = new Hono<{ Variables: JwtVariables; Bindings: Bindings }>();
+const app = new Hono<{ Variables: JwtVariables; Bindings: Env }>();
 
-app.use("/*", cors());
+app.use(
+  "/*",
+  cors({
+    origin: "http://localhost:4200",
+    credentials: true,
+  }),
+);
 
-const factory = createFactory<{ Bindings: Bindings }>();
+const factory = createFactory<{ Bindings: Env }>();
 app.use(
   "/*",
   factory.createMiddleware(async (c, next) => {

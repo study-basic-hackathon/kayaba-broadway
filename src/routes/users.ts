@@ -1,23 +1,27 @@
 import { Hono } from "hono";
 import type { JwtVariables } from "hono/jwt";
-import { userList } from "../data/users";
-import { Bindings, User } from "../types";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
+import { users } from "../db/schema";
 
-const users = new Hono<{ Variables: JwtVariables; Bindings: Bindings }>();
+const app = new Hono<{ Variables: JwtVariables; Bindings: Env }>();
 
-function findUserById(id: string): User | undefined {
-  return userList.find((x) => x.id === id);
-}
-
-users.get("/me", (c) => {
+app.get("/me", async (c) => {
   const payload = c.get("jwtPayload");
-  const user = findUserById(payload.sub);
-  if (!user) {
+
+  const db = drizzle(c.env.DB!);
+  const userRecord = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, payload.id))
+    .get();
+
+  if (!userRecord) {
     return c.json({ error: "ユーザーが見つかりません" }, 404);
   }
 
-  const { password, ...safeUser } = user;
+  const { password_hash, ...safeUser } = userRecord;
   return c.json({ user: safeUser });
 });
 
-export default users;
+export default app;

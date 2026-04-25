@@ -1,95 +1,248 @@
 import { zValidator } from "@hono/zod-validator";
-import { Hono } from "hono";
+import { eq, and, lt } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
+import { Hono, Context } from "hono";
 import { sign, verify } from "hono/jwt";
 import { z } from "zod";
 import { ALG } from "../constants";
-import { userList } from "../data/users";
-import { Bindings, User } from "../types";
-
-// TODO: 将来的に DB からの取得に置き換える
-const users: User[] = userList;
-
-const auth = new Hono<{ Bindings: Bindings }>();
+import { users, refreshTokens } from "../db/schema";
+import { setCookie, getCookie } from "hono/cookie";
+import { hashPassword, verifyPassword } from "../utils/hash";
 
 const ACCESS_TOKEN_EXPIRES_IN = 60 * 15;
 const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24 * 7;
 
-function findUser(email: string, password: string): User | undefined {
-  return users.find((x) => x.email === email && x.password === password);
-}
+const router = new Hono<{ Bindings: Env }>();
+
+const registerSchema = z
+  .object({
+    display_name: z.string(),
+    email: z.email(),
+    password: z.string(),
+    confirm_password: z.string(),
+  })
+  .refine((data) => data.password === data.confirm_password, {
+    error: "パスワードが一致しません",
+    path: ["confirm_password"],
+  });
+
+router.post("/register", zValidator("json", registerSchema), async (c) => {
+  const { display_name, email, password } = c.req.valid("json");
+  const db = drizzle(c.env.DB!);
+
+  const existing = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .get();
+
+  if (existing) {
+    return c.json({ error: "このメールアドレスはすでに登録されています" }, 409);
+  }
+
+  if (!c.env.JWT_SECRET) {
+    console.error("JWT_SECRET is not set");
+    return c.json({ error: "サーバーエラー" }, 500);
+  }
+
+  const password_hash = await hashPassword(password);
+  const [result] = await db
+    .insert(users)
+    .values({ email, display_name, password_hash })
+    .returning();
+
+  const nowUnix = Math.floor(Date.now() / 1000);
+
+  const accessToken = await sign(
+    {
+      id: result.id,
+      email: result.email,
+      exp: nowUnix + ACCESS_TOKEN_EXPIRES_IN,
+    },
+    c.env.JWT_SECRET,
+    ALG,
+  );
+
+  const refreshTokenExpiresAt = nowUnix + REFRESH_TOKEN_EXPIRES_IN;
+  const refreshToken = await sign(
+    {
+      id: result.id,
+      email: result.email,
+      type: "refresh",
+      exp: refreshTokenExpiresAt,
+    },
+    c.env.JWT_SECRET,
+    ALG,
+  );
+
+  await db.insert(refreshTokens).values({
+    user_id: result.id,
+    token: refreshToken,
+    expires_at: refreshTokenExpiresAt,
+  });
+
+  setCookie(c, "refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: c.env.ENVIRONMENT === "production",
+    sameSite: "Strict",
+    maxAge: REFRESH_TOKEN_EXPIRES_IN,
+  });
+
+  const { password_hash: _, ...user } = result;
+
+  return c.json({ accessToken, user });
+});
 
 const loginSchema = z.object({
   email: z.email(),
   password: z.string(),
 });
 
-auth.post("/login", zValidator("json", loginSchema), async (c) => {
-  const { email, password } = await c.req.valid("json");
+router.post("/login", zValidator("json", loginSchema), async (c) => {
+  const { email, password } = c.req.valid("json");
 
-  try {
-    const user = findUser(email, password);
+  const db = drizzle(c.env.DB!);
+  const storedUser = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .get();
 
-    if (!user) {
-      return c.json({ error: "認証失敗" }, 401);
-    }
-
-    if (!c.env.JWT_SECRET) {
-      console.error("JWT_SECRET is not set");
-      return c.json({ error: "サーバーエラー" }, 500);
-    }
-
-    const accessToken = await sign(
-      {
-        sub: user.id,
-        role: "user",
-        exp: Math.floor(Date.now() / 1000) + ACCESS_TOKEN_EXPIRES_IN,
-      },
-      c.env.JWT_SECRET,
-      ALG,
-    );
-
-    const refreshToken = await sign(
-      {
-        sub: user.id,
-        type: "refresh",
-        exp: Math.floor(Date.now() / 1000) + REFRESH_TOKEN_EXPIRES_IN,
-      },
-      c.env.JWT_SECRET,
-      ALG,
-    );
-
-    return c.json({ accessToken, refreshToken });
-  } catch (error) {
-    console.error(error);
-    return c.json({ error: "ログインに失敗しました" }, 500);
+  if (!storedUser) {
+    return c.json({ error: "メールアドレスまたはパスワードが違います" }, 401);
   }
+
+  const isValid = await verifyPassword(password, storedUser.password_hash);
+
+  if (!isValid) {
+    return c.json({ error: "メールアドレスまたはパスワードが違います" }, 401);
+  }
+
+  if (!c.env.JWT_SECRET) {
+    console.error("JWT_SECRET is not set");
+    return c.json({ error: "サーバーエラー" }, 500);
+  }
+
+  const nowUnix = Math.floor(Date.now() / 1000);
+
+  const accessToken = await sign(
+    {
+      id: storedUser.id,
+      email: storedUser.email,
+      exp: nowUnix + ACCESS_TOKEN_EXPIRES_IN,
+    },
+    c.env.JWT_SECRET,
+    ALG,
+  );
+
+  const refreshTokenExpiresAt = nowUnix + REFRESH_TOKEN_EXPIRES_IN;
+  const refreshToken = await sign(
+    {
+      id: storedUser.id,
+      email: storedUser.email,
+      type: "refresh",
+      exp: refreshTokenExpiresAt,
+    },
+    c.env.JWT_SECRET,
+    ALG,
+  );
+
+  // 期限切れトークンを削除してからinsert
+  await db
+    .delete(refreshTokens)
+    .where(
+      and(
+        eq(refreshTokens.user_id, storedUser.id),
+        lt(refreshTokens.expires_at, nowUnix),
+      ),
+    );
+
+  await db.insert(refreshTokens).values({
+    user_id: storedUser.id,
+    token: refreshToken,
+    expires_at: refreshTokenExpiresAt,
+  });
+
+  setCookie(c, "refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: c.env.ENVIRONMENT === "production",
+    sameSite: "Strict",
+    maxAge: REFRESH_TOKEN_EXPIRES_IN,
+  });
+
+  const { password_hash: _, ...user } = storedUser;
+
+  return c.json({ accessToken, user });
 });
 
-auth.post("/refresh", async (c) => {
-  const { refreshToken } = await c.req.json<{ refreshToken: string }>();
+router.post("/refresh", async (c) => {
+  const refreshToken = getCookie(c, "refreshToken");
+
+  if (!refreshToken) {
+    return c.json({ error: "リフレッシュトークンがありません" }, 401);
+  }
+
+  const db = drizzle(c.env.DB!);
+  const stored = await db
+    .select()
+    .from(refreshTokens)
+    .where(eq(refreshTokens.token, refreshToken))
+    .get();
+
+  if (!stored) {
+    return c.json({ error: "無効なトークンです" }, 401);
+  }
+
+  const nowUnix = Math.floor(Date.now() / 1000);
+
+  if (stored.expires_at < nowUnix) {
+    await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken));
+    return c.json({ error: "トークンの有効期限が切れています" }, 401);
+  }
 
   try {
     const payload = await verify(refreshToken, c.env.JWT_SECRET, ALG);
-
-    if (payload.type !== "refresh") {
-      return c.json({ error: "無効なトークン" }, 401);
-    }
-
     const accessToken = await sign(
       {
-        sub: payload.sub,
-        role: "user",
-        exp: Math.floor(Date.now() / 1000) + ACCESS_TOKEN_EXPIRES_IN,
+        id: payload.id,
+        email: payload.email,
+        exp: nowUnix + ACCESS_TOKEN_EXPIRES_IN,
       },
       c.env.JWT_SECRET,
       ALG,
     );
 
-    return c.json({ accessToken });
+    const storedUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, payload.id as string))
+      .get();
+
+    const { password_hash: _, ...user } = storedUser!;
+
+    return c.json({ accessToken, user });
   } catch (error) {
-    console.error(error);
+    console.log(error);
     return c.json({ error: "無効なトークン" }, 401);
   }
 });
 
-export default auth;
+router.post("/logout", async (c) => {
+  const db = drizzle(c.env.DB!);
+  const refreshToken = getCookie(c, "refreshToken");
+
+  if (refreshToken) {
+    await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken));
+  }
+
+  setCookie(c, "refreshToken", "", {
+    httpOnly: true,
+    secure: c.env.ENVIRONMENT === "production",
+    sameSite: "Strict",
+    maxAge: 0,
+  });
+
+  return c.json({ success: true });
+});
+
+export default router;

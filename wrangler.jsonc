@@ -3,11 +3,22 @@
   "name": "kayaba-broadway",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-12",
+  "vars": {
+    "ENVIRONMENT": "development",
+  },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "kayaba-broadway",
-      "database_id": "71f5ed2e-c3f7-460f-9d9d-db1102441aad",
+      "database_id": "f3a102f5-aeb0-4fe8-8203-0045e3c4a277",
+      "migrations_dir": "drizzle",
     },
   ],
+  "env": {
+    "production": {
+      "vars": {
+        "ENVIRONMENT": "production",
+      },
+    },
+  },
 }
