@@ -62,23 +62,34 @@ button {
   padding: 14px 40px;
   font-size: 1rem;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.1s,
+    filter 0.2s;
   user-select: none;
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
 
   &:disabled {
     cursor: not-allowed;
-  }
-
-  &:hover {
-    opacity: 0.9;
+    opacity: 0.45;
+    filter: grayscale(40%);
+    transform: none;
   }
 
   &.loading {
-    background-color: #444;
+    cursor: wait;
     opacity: 0.7;
+    filter: grayscale(20%);
   }
 }
-
 a {
   font-size: 0.9rem;
   color: #333;

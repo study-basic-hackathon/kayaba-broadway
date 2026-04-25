@@ -61,5 +61,8 @@ export class FieldsComponent implements OnInit {
     this.router.navigate(['/field'], { queryParams: { id } });
   }
 
-  logout() {}
+  logout() {
+    this.auth.logout();
+    this.router.navigate(['/login'], { replaceUrl: true });
+  }
 }

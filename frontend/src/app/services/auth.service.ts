@@ -62,8 +62,15 @@ export class AuthService {
     }
   }
 
-  logout() {
-    localStorage.removeItem('accessToken');
+  async logout() {
+    try {
+      await firstValueFrom(
+        this.http.post('http://localhost:8787/auth/logout', {}, { withCredentials: true }),
+      );
+    } finally {
+      localStorage.removeItem('accessToken');
+      this.currentUser.set(null);
+    }
   }
 
   getAccessToken() {

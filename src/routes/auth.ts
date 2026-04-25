@@ -227,4 +227,22 @@ router.post("/refresh", async (c) => {
   }
 });
 
+router.post("/logout", async (c) => {
+  const db = drizzle(c.env.DB!);
+  const refreshToken = getCookie(c, "refreshToken");
+
+  if (refreshToken) {
+    await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken));
+  }
+
+  setCookie(c, "refreshToken", "", {
+    httpOnly: true,
+    secure: c.env.ENVIRONMENT === "production",
+    sameSite: "Strict",
+    maxAge: 0,
+  });
+
+  return c.json({ success: true });
+});
+
 export default router;
