@@ -16,6 +16,7 @@
 | [docs/design-doc.md](../docs/design-doc.md) | Design Doc。コンセプト・機能要件・画面構成・システム構成・DB/API初期設計をまとめたメインドキュメント |
 | [docs/api-endpoints.md](../docs/api-endpoints.md) | APIエンドポイント一覧。実装済みエンドポイントの仕様・リクエスト・レスポンス例をまとめたドキュメント |
 | [docs/system-flow.md](../docs/system-flow.md) | システムフロー図。フロントエンド・バックエンド・Partykit 間の処理フローをMermaidシーケンス図で記述 |
+| [docs/partykit.md](../docs/partykit.md) | Partykit 仕様書。接続URL・認証・メッセージ仕様・ライフサイクル・ローカル開発手順をまとめたドキュメント |
 
 ## 参照スキルガイド（Skills）
 
@@ -27,7 +28,7 @@
 
 ## リポジトリ構成
 
-バックエンド（Cloudflare Workers / Hono）がルートに、フロントエンド（Angular）が `frontend/` サブディレクトリに配置されている。
+バックエンド（Cloudflare Workers / Hono）がルートに、フロントエンド（Angular）が `frontend/`、Partykit サーバーが `partykit/` サブディレクトリに配置されている。
 
 ```
 kayaba-broadway/          # バックエンド（Hono + Drizzle ORM）
@@ -35,6 +36,9 @@ kayaba-broadway/          # バックエンド（Hono + Drizzle ORM）
 ├── frontend/             # フロントエンド（Angular + PixiJS）
 │   └── src/
 │       └── app/
+├── partykit/             # Partykit サーバー（WebSocket / リアルタイム通信）
+│   └── party/
+│       └── index.ts
 ├── docs/                 # ドキュメント
 ├── wrangler.jsonc        # Cloudflare Workers 設定
 └── .github/
