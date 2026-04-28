@@ -16,7 +16,9 @@ app.use(
   "/*",
   cors({
     origin: "http://localhost:4200",
+    allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
+    maxAge: 600,
   }),
 );
 
