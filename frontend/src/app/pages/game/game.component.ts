@@ -178,11 +178,24 @@ export class GameComponent implements OnInit, OnDestroy {
     });
   }
 
+  private readonly handleKeydown = (e: KeyboardEvent) => {
+    this.keys[e.key] = true;
+  };
+
+  private readonly handleKeyup = (e: KeyboardEvent) => {
+    this.keys[e.key] = false;
+  };
+
+  ngOnDestroy() {
+    window.removeEventListener('keydown', this.handleKeydown);
+    window.removeEventListener('keyup', this.handleKeyup);
+  }
+
   private initInput() {
     // キーを押した時にtrueを記録
-    window.addEventListener('keydown', (e) => (this.keys[e.key] = true));
+    window.addEventListener('keydown', this.handleKeydown);
     // キーを離した時にfalseを記録
-    window.addEventListener('keyup', (e) => (this.keys[e.key] = false));
+    window.addEventListener('keyup', this.handleKeyup);
   }
 
   private initSocket(fieldId: string) {
