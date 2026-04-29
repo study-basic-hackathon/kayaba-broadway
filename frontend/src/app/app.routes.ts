@@ -16,7 +16,7 @@ export const routes: Routes = [
     children: [
       { path: 'field', component: FieldComponent },
       { path: 'fields', component: FieldsComponent },
-      { path: 'game', component: GameComponent },
+      { path: 'game/:fieldId', component: GameComponent },
     ],
   },
 ];

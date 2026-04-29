@@ -9,6 +9,9 @@ import {
   Sprite,
 } from 'pixi.js';
 import PartySocket from 'partysocket';
+import { ActivatedRoute } from '@angular/router';
+import { inject } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 
 interface OtherPlayer {
   id: string;
@@ -27,6 +30,8 @@ export class GameComponent implements OnInit, OnDestroy {
   private app!: Application;
   private player!: Graphics;
 
+  private route = inject(ActivatedRoute);
+  private auth = inject(AuthService);
   // 現在押されているキーを管理するオブジェクト
   private keys: Record<string, boolean> = {};
 
@@ -34,7 +39,6 @@ export class GameComponent implements OnInit, OnDestroy {
   private speed = 4;
 
   private socket!: PartySocket;
-  private myId = '';
   private otherPlayers = new Map<string, OtherPlayer>();
 
   // プレイヤーの初期位置（移動範囲の中央付近）
@@ -60,7 +64,8 @@ export class GameComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     await this.initPixi();
-    this.initSocket();
+    const fieldId = this.route.snapshot.paramMap.get('fieldId') ?? 'field-1';
+    this.initSocket(fieldId);
     this.initInput();
     // 毎フレームupdateを呼ぶ
     this.app.ticker.add(() => this.update());
@@ -167,48 +172,50 @@ export class GameComponent implements OnInit, OnDestroy {
     window.addEventListener('keyup', (e) => (this.keys[e.key] = false));
   }
 
-  private initSocket() {
+  private initSocket(fieldId: string) {
+    const token = this.auth.getAccessToken();
+
     this.socket = new PartySocket({
       host: '127.0.0.1:1999',
-      room: 'room1',
+      room: fieldId,
+      ...(token ? { query: { token } } : {}),
     });
 
     this.socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      const msg = JSON.parse(event.data) as { message_type: string; data: any };
 
-      switch (data.type) {
+      switch (msg.message_type) {
         // 接続時：既存プレイヤーを全員表示
         case 'init':
-          this.myId = data.id;
-          for (const p of data.players) {
-            this.addOtherPlayer(p.id, p.x, p.y);
+          for (const u of msg.data.users) {
+            this.addOtherPlayer(u.userId, u.x, u.y);
           }
           break;
 
         // 誰かが入室：その人を表示
         case 'join':
-          this.addOtherPlayer(data.id, data.x, data.y);
+          this.addOtherPlayer(msg.data.userId, msg.data.x, msg.data.y);
           break;
 
         // 誰かが移動：その人の位置を更新
         case 'move': {
-          const p = this.otherPlayers.get(data.id);
+          const p = this.otherPlayers.get(msg.data.userId);
           if (p) {
-            p.graphics.x = data.x;
-            p.graphics.y = data.y;
-            p.label.x = data.x;
-            p.label.y = data.y - 28;
+            p.graphics.x = msg.data.x;
+            p.graphics.y = msg.data.y;
+            p.label.x = msg.data.x;
+            p.label.y = msg.data.y - 28;
           }
           break;
         }
 
         // 誰かが退室：その人を削除
         case 'leave': {
-          const p = this.otherPlayers.get(data.id);
+          const p = this.otherPlayers.get(msg.data.userId);
           if (p) {
             this.app.stage.removeChild(p.graphics);
             this.app.stage.removeChild(p.label);
-            this.otherPlayers.delete(data.id);
+            this.otherPlayers.delete(msg.data.userId);
           }
           break;
         }
@@ -290,7 +297,7 @@ export class GameComponent implements OnInit, OnDestroy {
 
     // 移動した時だけサーバーに送信（毎フレーム送ると通信量が増えるため）
     if (moved) {
-      this.socket.send(JSON.stringify({ type: 'move', x: this.x, y: this.y }));
+      this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y } }));
     }
   }
 

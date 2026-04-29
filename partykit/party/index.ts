@@ -147,43 +147,9 @@ export default class FieldRoom implements Party.Server {
     return [...usersByUserId.values()];
   }
 
-  private extractBearerToken(authorizationHeader: string | null): string | null {
-    if (!authorizationHeader) {
-      return null;
-    }
-
-    const [scheme, token] = authorizationHeader.trim().split(/\s+/, 2);
-    if (scheme?.toLowerCase() !== "bearer" || !token) {
-      return null;
-    }
-
-    return token;
-  }
-
   private getTokenFromConnectionRequest(request: Request): string | null {
-    const bearerToken = this.extractBearerToken(
-      request.headers.get("Authorization"),
-    );
-    if (bearerToken) {
-      return bearerToken;
-    }
-
-    const protocolsHeader = request.headers.get("Sec-WebSocket-Protocol");
-    if (!protocolsHeader) {
-      return null;
-    }
-
-    for (const protocol of protocolsHeader.split(",")) {
-      const trimmedProtocol = protocol.trim();
-      if (trimmedProtocol.startsWith("bearer.")) {
-        const token = trimmedProtocol.slice("bearer.".length);
-        if (token.length > 0) {
-          return token;
-        }
-      }
-    }
-
-    return null;
+    const url = new URL(request.url);
+    return url.searchParams.get("token");
   }
 
   async onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {

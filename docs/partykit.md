@@ -44,12 +44,13 @@ ws://localhost:1999/party/field-1
 
 ### 認証
 
-接続時に以下のいずれかの方法でトークンを送信する。Partykit サーバーの `onConnect` で JWT を検証し、無効なら接続を拒否する。
+接続時にクエリパラメータでトークンを送信する。Partykit サーバーの `onConnect` で JWT を検証し、無効なら接続を拒否する。
 
-| 方法 | 説明 |
-|------|------|
-| `Authorization` ヘッダー | `Authorization: Bearer <accessToken>` |
-| `Sec-WebSocket-Protocol` ヘッダー | `Sec-WebSocket-Protocol: bearer.<accessToken>` （ブラウザの WebSocket API でヘッダーを直接付与できない場合に利用） |
+```
+ws://localhost:1999/party/field-1?token=<accessToken>
+```
+
+> ブラウザの WebSocket API はカスタムヘッダーを付与できないため、クエリパラメータを使用する。HTTPS 通信ではURLも暗号化されるため本番環境でも許容される方式。
 
 ```
 // バックエンドと Partykit で同じ JWT_SECRET を共有する（HS256）
@@ -189,11 +190,7 @@ npx partykit dev --config partykit/partykit.json
 npm install -g wscat
 
 # 接続（tokenはバックエンドのPOST /auth/loginで取得したもの）
-# Authorization ヘッダーで渡す場合
-wscat -c "ws://localhost:1999/party/field-1" -H "Authorization: Bearer <accessToken>"
-
-# Sec-WebSocket-Protocol ヘッダーで渡す場合（ブラウザ環境想定）
-wscat -c "ws://localhost:1999/party/field-1" --protocol "bearer.<accessToken>"
+wscat -c "ws://localhost:1999/party/field-1?token=<accessToken>"
 
 # 移動メッセージを送信
 > {"message_type":"move","data":{"x":100,"y":200}}
