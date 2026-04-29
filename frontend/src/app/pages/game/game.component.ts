@@ -15,6 +15,7 @@ import { AuthService } from '../../services/auth.service';
 
 interface OtherPlayer {
   id: string;
+  displayName: string;
   graphics: Graphics;
   label: PixiText;
 }
@@ -29,6 +30,7 @@ export class GameComponent implements OnInit, OnDestroy {
   @ViewChild('gameContainer', { static: true }) gameContainer!: ElementRef;
   private app!: Application;
   private player!: Graphics;
+  private playerLabel!: PixiText;
 
   private route = inject(ActivatedRoute);
   private auth = inject(AuthService);
@@ -88,6 +90,17 @@ export class GameComponent implements OnInit, OnDestroy {
     this.player.x = this.x;
     this.player.y = this.y;
     this.app.stage.addChild(this.player);
+
+    // 自分の名前ラベルを表示
+    const displayName = this.auth.user()?.display_name ?? '';
+    this.playerLabel = new PixiText({
+      text: displayName,
+      style: { fontSize: 12, fill: 0xffffff },
+    });
+    this.playerLabel.x = this.x;
+    this.playerLabel.y = this.y - 28;
+    this.playerLabel.anchor.set(0.5);
+    this.app.stage.addChild(this.playerLabel);
 
     // 初期カメラ位置をプレイヤーが画面中央になるように設定
     this.app.stage.x = this.app.screen.width / 2 - this.x;
@@ -188,13 +201,13 @@ export class GameComponent implements OnInit, OnDestroy {
         // 接続時：既存プレイヤーを全員表示
         case 'init':
           for (const u of msg.data.users) {
-            this.addOtherPlayer(u.userId, u.x, u.y);
+            this.addOtherPlayer(u.userId, u.displayName, u.x, u.y);
           }
           break;
 
         // 誰かが入室：その人を表示
         case 'join':
-          this.addOtherPlayer(msg.data.userId, msg.data.x, msg.data.y);
+          this.addOtherPlayer(msg.data.userId, msg.data.displayName, msg.data.x, msg.data.y);
           break;
 
         // 誰かが移動：その人の位置を更新
@@ -224,16 +237,16 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   // 他のプレイヤーをstageに追加する
-  private addOtherPlayer(id: string, x: number, y: number) {
+  private addOtherPlayer(id: string, displayName: string, x: number, y: number) {
     // 他のプレイヤーを赤い●で表示
     const graphics = new Graphics();
     graphics.circle(0, 0, 16).fill(0xe11d48);
     graphics.x = x;
     graphics.y = y;
 
-    // IDの先頭6文字をラベルとして表示
+    // display_nameをラベルとして表示
     const label = new PixiText({
-      text: id.slice(0, 6),
+      text: displayName,
       style: { fontSize: 12, fill: 0xffffff },
     });
     label.x = x;
@@ -242,7 +255,7 @@ export class GameComponent implements OnInit, OnDestroy {
 
     this.app.stage.addChild(graphics);
     this.app.stage.addChild(label);
-    this.otherPlayers.set(id, { id, graphics, label });
+    this.otherPlayers.set(id, { id, displayName, graphics, label });
   }
 
   // 移動先に当たり判定があるか確認
@@ -290,6 +303,8 @@ export class GameComponent implements OnInit, OnDestroy {
     // 自分のプレイヤーの位置を更新
     this.player.x = this.x;
     this.player.y = this.y;
+    this.playerLabel.x = this.x;
+    this.playerLabel.y = this.y - 28;
 
     // カメラをプレイヤーに追従させる（プレイヤーが常に画面中央に表示される）
     this.app.stage.x = this.app.screen.width / 2 - this.x;
