@@ -30,21 +30,18 @@ function isValidCoordinate(
 
 // フロントエンド → Partykit
 type MoveMessage = {
-  type: "move";
-  x: number;
-  y: number;
+  message_type: "move";
+  data: { x: number; y: number };
 };
 
 // Partykit → フロントエンド
 type MoveBroadcastMessage = {
-  type: "move";
-  userId: string;
-  x: number;
-  y: number;
+  message_type: "move";
+  data: { userId: string; x: number; y: number };
 };
-type JoinMessage = { type: "join"; userId: string; x: number; y: number };
-type LeaveMessage = { type: "leave"; userId: string };
-type InitMessage = { type: "init"; users: UserState[] };
+type JoinMessage = { message_type: "join"; data: { userId: string; x: number; y: number } };
+type LeaveMessage = { message_type: "leave"; data: { userId: string } };
+type InitMessage = { message_type: "init"; data: { users: UserState[] } };
 type BroadcastMessage = MoveBroadcastMessage | JoinMessage | LeaveMessage;
 
 // ────────────────────────────────────────────
@@ -61,7 +58,7 @@ function decodeBase64Url(value: string): string {
 async function verifyJwt(
   token: string,
   secret: string
-): Promise<{ sub: string } | null> {
+): Promise<{ id: string } | null> {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
@@ -100,11 +97,11 @@ async function verifyJwt(
       return null;
     }
 
-    if (typeof payload.sub !== "string" || payload.sub.length === 0) {
+    if (typeof payload.id !== "string" || payload.id.length === 0) {
       return null;
     }
 
-    return { sub: payload.sub };
+    return { id: payload.id };
   } catch {
     return null;
   }
@@ -202,14 +199,11 @@ export default class FieldRoom implements Party.Server {
     const payload = token ? await verifyJwt(token, secret) : null;
 
     if (!payload) {
-      conn.close(
-        4001,
-        "認証失敗: Authorization ヘッダーまたは Sec-WebSocket-Protocol から有効なトークンを指定してください",
-      );
+      conn.close(4001, "Unauthorized");
       return;
     }
 
-    const userId = payload.sub;
+    const userId = payload.id;
     const existingUserState = this.findUserStateByUserId(userId);
     const hadExistingConnection = existingUserState !== undefined;
 
@@ -219,42 +213,40 @@ export default class FieldRoom implements Party.Server {
 
     // 接続したユーザーに現在の全ユーザー位置を返す（同一 userId は重複除外し、自分自身は除く）
     const initMessage: InitMessage = {
-      type: "init",
-      users: this.listUniqueUsers(userId),
+      message_type: "init",
+      data: { users: this.listUniqueUsers(userId) },
     };
     conn.send(JSON.stringify(initMessage));
 
     // その userId の最初の接続時のみ、他のユーザー全員に join を通知
     if (!hadExistingConnection) {
-      const joinMessage: JoinMessage = { type: "join", userId, x: 0, y: 0 };
+      const joinMessage: JoinMessage = { message_type: "join", data: { userId, x: 0, y: 0 } };
       this.room.broadcast(JSON.stringify(joinMessage), [conn.id]);
     }
   }
 
   onMessage(message: string, sender: Party.Connection) {
     try {
-      const data = JSON.parse(message) as MoveMessage;
+      const msg = JSON.parse(message) as MoveMessage;
 
-      if (data.type === "move") {
+      if (msg.message_type === "move") {
         const user = this.users.get(sender.id);
         if (user) {
           if (
-            !isValidCoordinate(data.x, FIELD_MIN_X, FIELD_MAX_X) ||
-            !isValidCoordinate(data.y, FIELD_MIN_Y, FIELD_MAX_Y)
+            !isValidCoordinate(msg.data.x, FIELD_MIN_X, FIELD_MAX_X) ||
+            !isValidCoordinate(msg.data.y, FIELD_MIN_Y, FIELD_MAX_Y)
           ) {
             return;
           }
 
           // 座標を更新
-          user.x = data.x;
-          user.y = data.y;
+          user.x = msg.data.x;
+          user.y = msg.data.y;
 
           // 送信者以外の全員にブロードキャスト
           const broadcastMsg: BroadcastMessage = {
-            type: "move",
-            userId: user.userId,
-            x: data.x,
-            y: data.y,
+            message_type: "move",
+            data: { userId: user.userId, x: msg.data.x, y: msg.data.y },
           };
           this.room.broadcast(JSON.stringify(broadcastMsg), [sender.id]);
         }
@@ -271,7 +263,7 @@ export default class FieldRoom implements Party.Server {
 
       // 同一 userId の接続がすべて閉じたときだけ leave を通知
       if (!this.hasUserConnection(user.userId)) {
-        const leaveMessage: LeaveMessage = { type: "leave", userId: user.userId };
+        const leaveMessage: LeaveMessage = { message_type: "leave", data: { userId: user.userId } };
         this.room.broadcast(JSON.stringify(leaveMessage));
       }
     }

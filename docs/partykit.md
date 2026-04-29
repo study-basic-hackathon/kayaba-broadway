@@ -71,9 +71,11 @@ ws://localhost:1999/party/field-1
 
 ```json
 {
-  "type": "move",
-  "x": 320,
-  "y": 200
+  "message_type": "move",
+  "data": {
+    "x": 320,
+    "y": 200
+  }
 }
 ```
 
@@ -85,10 +87,12 @@ ws://localhost:1999/party/field-1
 
 ```json
 {
-  "type": "move",
-  "userId": "user-abc123",
-  "x": 320,
-  "y": 200
+  "message_type": "move",
+  "data": {
+    "userId": "user-abc123",
+    "x": 320,
+    "y": 200
+  }
 }
 ```
 
@@ -99,10 +103,12 @@ ws://localhost:1999/party/field-1
 
 ```json
 {
-  "type": "join",
-  "userId": "user-abc123",
-  "x": 0,
-  "y": 0
+  "message_type": "join",
+  "data": {
+    "userId": "user-abc123",
+    "x": 0,
+    "y": 0
+  }
 }
 ```
 
@@ -112,8 +118,10 @@ ws://localhost:1999/party/field-1
 
 ```json
 {
-  "type": "leave",
-  "userId": "user-abc123"
+  "message_type": "leave",
+  "data": {
+    "userId": "user-abc123"
+  }
 }
 ```
 
@@ -123,11 +131,13 @@ ws://localhost:1999/party/field-1
 
 ```json
 {
-  "type": "init",
-  "users": [
-    { "userId": "user-xyz456", "x": 100, "y": 150 },
-    { "userId": "user-def789", "x": 200, "y": 300 }
-  ]
+  "message_type": "init",
+  "data": {
+    "users": [
+      { "userId": "user-xyz456", "x": 100, "y": 150 },
+      { "userId": "user-def789", "x": 200, "y": 300 }
+    ]
+  }
 }
 ```
 
@@ -138,7 +148,7 @@ ws://localhost:1999/party/field-1
 | フック | タイミング | やること |
 |--------|-----------|---------|
 | `onConnect` | 新規接続時 | JWT 検証 → 無効なら拒否。有効なら初期座標 `(0, 0)` でユーザーをルームに追加し、`init` メッセージで現在の全ユーザー位置を返す。`join (x:0, y:0)` を全員にブロードキャスト |
-| `onMessage` | メッセージ受信時 | `type` に応じて処理。`move` は送信者以外全員にブロードキャスト |
+| `onMessage` | メッセージ受信時 | `message_type` に応じて処理。`move` は送信者以外全員にブロードキャスト |
 | `onClose` | 切断時 | `leave` を残っている全員にブロードキャスト。ルームの状態からそのユーザーを削除 |
 
 ---
@@ -186,7 +196,7 @@ wscat -c "ws://localhost:1999/party/field-1" -H "Authorization: Bearer <accessTo
 wscat -c "ws://localhost:1999/party/field-1" --protocol "bearer.<accessToken>"
 
 # 移動メッセージを送信
-> {"type":"move","x":100,"y":200}
+> {"message_type":"move","data":{"x":100,"y":200}}
 ```
 
 ### デプロイ
