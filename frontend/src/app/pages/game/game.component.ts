@@ -329,10 +329,24 @@ export class GameComponent implements OnInit, OnDestroy {
     }
   }
 
+  private cleanupResources() {
+    const socket = (this as { socket?: PartySocket | null }).socket;
+    const app = (this as { app?: Application | null }).app;
+
+    // WebSocket接続を安全に切断
+    if (socket) {
+      socket.close();
+    }
+
+    // PixiJSのtickerを停止・解除してからcanvasやメモリを解放
+    if (app) {
+      app.ticker.remove(this.update, this);
+      app.ticker.stop();
+      app.destroy(true);
+    }
+  }
+
   ngOnDestroy() {
-    // WebSocket接続を切断
-    this.socket.close();
-    // PixiJSのcanvasやメモリを解放
-    this.app.destroy(true);
+    this.cleanupResources();
   }
 }
