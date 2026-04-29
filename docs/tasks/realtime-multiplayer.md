@@ -71,11 +71,11 @@ this.socket.send(JSON.stringify({
 switch (msg.message_type) {
   case 'init':
     for (const u of msg.data.users) {
-      this.addOtherPlayer(u.userId, u.x, u.y);
+      this.addOtherPlayer(u.userId, u.displayName, u.x, u.y);
     }
     break;
   case 'join':
-    this.addOtherPlayer(msg.data.userId, msg.data.x, msg.data.y);
+    this.addOtherPlayer(msg.data.userId, msg.data.displayName, msg.data.x, msg.data.y);
     break;
   case 'move': {
     const p = this.otherPlayers.get(msg.data.userId);
