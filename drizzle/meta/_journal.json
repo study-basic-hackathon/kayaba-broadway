@@ -13,7 +13,7 @@
       "idx": 2,
       "version": "6",
       "when": 1777455532747,
-      "tag": "0002_perpetual_deadpool",
+      "tag": "0002_add_shop_zone_columns",
       "breakpoints": true
     },
     {
@@ -21,6 +21,13 @@
       "version": "6",
       "when": 1777455532748,
       "tag": "0003_shop_zone_data",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1777475544971,
+      "tag": "0004_drop_shop_position_columns",
       "breakpoints": true
     }
   ]

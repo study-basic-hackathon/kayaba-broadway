@@ -50,8 +50,6 @@ export const shops = sqliteTable("shops", {
     .references(() => fields.id),
   name: text("name").notNull(),
   description: text("description"),
-  position_x: integer("position_x").notNull(),
-  position_y: integer("position_y").notNull(),
   zone_col: integer("zone_col"),
   zone_row: integer("zone_row"),
   zone_width: integer("zone_width"),
