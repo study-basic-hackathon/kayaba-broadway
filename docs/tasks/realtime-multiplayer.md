@@ -137,5 +137,6 @@ switch (msg.message_type) {
 | `frontend/src/app/app.routes.ts` | `/game` → `/game/:fieldId` |
 | `frontend/src/app/pages/fields/fields.component.ts` | `onClick` でフィールドIDをルートパラメータに渡す |
 | `frontend/src/app/pages/game/game.component.ts` | ルートパラメータ取得・認証トークン付与・メッセージフォーマット更新 |
+| `partykit/party/index.ts` | クエリパラメータ経由のトークン受け渡し対応、および `displayName` 付与を含む接続・同期処理の更新 |
 
-バックエンド・Partykit サーバー側の変更は不要。
+フロントエンドに加えて、Partykit サーバー側（`partykit/party/index.ts`）にも認証情報の受け渡し方法とプレイヤー情報の扱いに関する変更が入る。
