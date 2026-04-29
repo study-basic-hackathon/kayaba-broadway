@@ -16,9 +16,16 @@ app.use(
   "/*",
   cors({
     origin: "http://localhost:4200",
+    allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
+    maxAge: 600,
   }),
 );
+
+app.use("/*", async (c, next) => {
+  await next();
+  c.header("X-Content-Type-Options", "nosniff");
+});
 
 const factory = createFactory<{ Bindings: Env }>();
 app.use(
