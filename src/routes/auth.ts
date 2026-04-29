@@ -211,18 +211,23 @@ router.post("/refresh", async (c) => {
       .where(eq(users.id, payload.id as string))
       .get();
 
+    if (!storedUser) {
+      await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken));
+      return c.json({ error: "ユーザーが存在しません" }, 401);
+    }
+
     const accessToken = await sign(
       {
-        id: storedUser!.id,
-        email: storedUser!.email,
-        display_name: storedUser!.display_name,
+        id: storedUser.id,
+        email: storedUser.email,
+        display_name: storedUser.display_name,
         exp: nowUnix + ACCESS_TOKEN_EXPIRES_IN,
       },
       c.env.JWT_SECRET,
       ALG,
     );
 
-    const { password_hash: _, ...user } = storedUser!;
+    const { password_hash: _, ...user } = storedUser;
 
     return c.json({ accessToken, user });
   } catch (error) {
