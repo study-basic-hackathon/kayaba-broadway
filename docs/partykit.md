@@ -50,7 +50,7 @@ ws://localhost:1999/party/field-1
 ws://localhost:1999/party/field-1?token=<accessToken>
 ```
 
-> ブラウザの WebSocket API はカスタムヘッダーを付与できないため、クエリパラメータを使用する。HTTPS 通信ではURLも暗号化されるため本番環境でも許容される方式。
+> ブラウザの WebSocket API はカスタムヘッダーを付与できないため、クエリパラメータを使用する。
 
 ```
 // バックエンドと Partykit で同じ JWT_SECRET を共有する（HS256）
