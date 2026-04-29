@@ -6,9 +6,23 @@
   justify-content: center;
   align-items: center;
   overflow: hidden;
+  position: relative;
 }
 .game-container {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.shop-overlay {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 10;
 }

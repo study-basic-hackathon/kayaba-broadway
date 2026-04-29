@@ -54,7 +54,7 @@
   - `zone_height: integer` — ゾーンの高さ（タイル数）
 - [x] `drizzle-kit generate` でマイグレーションファイルを生成する（`drizzle/0002_perpetual_deadpool.sql`）
 - [x] `src/data/shops.ts` のシードデータにゾーン情報を追加する
-  - 現マップの建物内部は col:11〜15, row:8〜12 → `zone_col: 11, zone_row: 8, zone_width: 5, zone_height: 5`
+  - 現マップの建物内部は col:10〜16, row:7〜13 → `zone_col: 10, zone_row: 7, zone_width: 7, zone_height: 7`
 - [x] `drizzle/0001_seeder.sql` の `shops` INSERT にもゾーン情報を追加する
 - [x] `GET /fields/:id/shops` のレスポンスにゾーン情報が含まれることを確認する（Drizzle の select で自動的に含まれるため追加実装不要）
 - [x] ローカルDBにマイグレーションを適用する（`npx wrangler d1 migrations apply kayaba-broadway --local`）
@@ -68,10 +68,10 @@
 
 ### フェーズ2: フロントエンド — 店舗ゾーン判定
 
-- [ ] `game.component.ts` の `ngOnInit` で `GET /fields/:fieldId/shops` を呼び出して店舗一覧を取得する
+- [x] `game.component.ts` の `ngOnInit` で `GET /fields/:fieldId/shops` を呼び出して店舗一覧を取得する
   - `AuthService` からトークンを取得して `Authorization` ヘッダーをセット
-- [ ] 取得した店舗情報を `shops: Shop[]` として保持する
-- [ ] `update()` の毎フレーム処理に現在地のタイル座標を計算し、全店舗のゾーン矩形と交差判定するロジックを追加する
+- [x] 取得した店舗情報を `shops: Shop[]` として保持する
+- [x] `update()` の毎フレーム処理に現在地のタイル座標を計算し、全店舗のゾーン矩形と交差判定するロジックを追加する
   ```typescript
   const tileX = Math.floor(this.x / (this.tileSize * this.scale));
   const tileY = Math.floor(this.y / (this.tileSize * this.scale));
@@ -80,11 +80,11 @@
     tileY >= s.zone_row && tileY < s.zone_row + s.zone_height
   ) ?? null;
   ```
-- [ ] 現在いる店舗が変化したときのみ `currentShop` を更新する（毎フレーム更新による再描画コストを避ける）
+- [x] 現在いる店舗が変化したときのみ `currentShop` を更新する（毎フレーム更新による再描画コストを避ける）
 
 ### フェーズ3: UIオーバーレイ表示（Angular 側）
 
-- [ ] `game.component.html` に店舗名オーバーレイ用の HTML 要素を追加する
+- [x] `game.component.html` に店舗名オーバーレイ用の HTML 要素を追加する
 
 ```html
 <!-- 右上に表示するオーバーレイ -->
@@ -95,7 +95,7 @@
 }
 ```
 
-- [ ] `game.component.scss` でスタイルを追加する
+- [x] `game.component.scss` でスタイルを追加する
 
 ```scss
 .wrapper {
@@ -116,8 +116,8 @@
 }
 ```
 
-- [ ] `game.component.ts` に `currentShop = signal<Shop | null>(null)` を追加して Angular の変更検知と連携する
-  - PixiJS の ticker（Web Worker 的な非 Angular Zone なループ）から Angular の signal を更新するため、`NgZone.run()` または `ChangeDetectorRef.markForCheck()` との組み合わせが必要
+- [x] `game.component.ts` に `currentShop = signal<Shop | null>(null)` を追加して Angular の変更検知と連携する
+  - PixiJS の ticker（Web Worker 的な非 Angular Zone なループ）から Angular の signal を更新するため、`NgZone.run()` で更新
 
 ---
 
@@ -137,6 +137,6 @@
 
 `map.json` の `collision` レイヤーを見ると、タイル座標 col:10〜16, row:7〜13 付近に壁が配置されており、これが現在唯一の建物（店舗）と推定される。
 
-入れる内部の範囲: col:11〜15, row:8〜12（幅5タイル × 高さ5タイル）
+入れる内部の範囲: col:10〜16, row:7〜13（幅7タイル × 高さ7タイル）
 
-→ シードデータ: `zone_col: 11, zone_row: 8, zone_width: 5, zone_height: 5`
+→ シードデータ: `zone_col: 10, zone_row: 7, zone_width: 7, zone_height: 7`

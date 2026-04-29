@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, ViewChild, NgZone, signal } from '@angular/core';
 import {
   Application,
   Graphics,
@@ -12,6 +12,15 @@ import PartySocket from 'partysocket';
 import { ActivatedRoute } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
+
+interface Shop {
+  id: string;
+  name: string;
+  zone_col: number | null;
+  zone_row: number | null;
+  zone_width: number | null;
+  zone_height: number | null;
+}
 
 interface OtherPlayer {
   id: string;
@@ -34,6 +43,12 @@ export class GameComponent implements OnInit, OnDestroy {
 
   private route = inject(ActivatedRoute);
   private auth = inject(AuthService);
+  private ngZone = inject(NgZone);
+
+  // 店舗ゾーン判定用
+  private shops: Shop[] = [];
+  currentShop = signal<Shop | null>(null);
+
   // 現在押されているキーを管理するオブジェクト
   private keys: Record<string, boolean> = {};
 
@@ -69,8 +84,23 @@ export class GameComponent implements OnInit, OnDestroy {
     const fieldId = this.route.snapshot.paramMap.get('fieldId') ?? 'field-1';
     this.initSocket(fieldId);
     this.initInput();
-    // 毎フレームupdateを呼ぶ
+    // 毎フレームupdateを呼ぶ（loadShopsより先に起動して移動を妨げないようにする）
     this.app.ticker.add(() => this.update());
+    // 店舗情報は非同期で取得（失敗しても移動には影響しない）
+    this.loadShops(fieldId);
+  }
+
+  private async loadShops(fieldId: string) {
+    const token = this.auth.getAccessToken();
+    try {
+      const res = await fetch(`http://localhost:8787/fields/${fieldId}/shops`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json() as { shops: Shop[] };
+      this.shops = data.shops;
+    } catch (e) {
+      console.error('店舗情報の取得に失敗しました', e);
+    }
   }
 
   private async initPixi() {
@@ -185,11 +215,6 @@ export class GameComponent implements OnInit, OnDestroy {
   private readonly handleKeyup = (e: KeyboardEvent) => {
     this.keys[e.key] = false;
   };
-
-  ngOnDestroy() {
-    window.removeEventListener('keydown', this.handleKeydown);
-    window.removeEventListener('keyup', this.handleKeyup);
-  }
 
   private initInput() {
     // キーを押した時にtrueを記録
@@ -327,23 +352,36 @@ export class GameComponent implements OnInit, OnDestroy {
     if (moved) {
       this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y } }));
     }
+
+    // 店舗ゾーン判定
+    const tileScaledSize = this.tileSize * this.scale;
+    const tileX = Math.floor(this.x / tileScaledSize);
+    const tileY = Math.floor(this.y / tileScaledSize);
+    const shop = this.shops.find(s =>
+      s.zone_col !== null && s.zone_row !== null &&
+      s.zone_width !== null && s.zone_height !== null &&
+      tileX >= s.zone_col && tileX < s.zone_col + s.zone_width &&
+      tileY >= s.zone_row && tileY < s.zone_row + s.zone_height
+    ) ?? null;
+
+    // 現在いる店舗が変化したときのみ更新（Angularの変更検知をトリガーするためNgZone内で実行）
+    if (shop?.id !== this.currentShop()?.id) {
+      this.ngZone.run(() => this.currentShop.set(shop));
+    }
   }
 
   private cleanupResources() {
-    const socket = (this as { socket?: PartySocket | null }).socket;
-    const app = (this as { app?: Application | null }).app;
+    // キーイベントリスナーを解除
+    window.removeEventListener('keydown', this.handleKeydown);
+    window.removeEventListener('keyup', this.handleKeyup);
 
     // WebSocket接続を安全に切断
-    if (socket) {
-      socket.close();
-    }
+    this.socket?.close();
 
     // PixiJSのtickerを停止・解除してからcanvasやメモリを解放
-    if (app) {
-      app.ticker.remove(this.update, this);
-      app.ticker.stop();
-      app.destroy(true);
-    }
+    this.app?.ticker.remove(this.update, this);
+    this.app?.ticker.stop();
+    this.app?.destroy(true);
   }
 
   ngOnDestroy() {
