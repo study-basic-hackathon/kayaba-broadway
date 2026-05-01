@@ -3,6 +3,40 @@
   @if (currentShop()) {
     <div class="shop-overlay">
       <span class="shop-name">🏪 {{ currentShop()!.name }}</span>
+
+      <div class="chat-panel">
+        <div class="chat-messages" #chatMessages>
+          @for (msg of shopChatService.messages(); track msg.timestamp) {
+            <div class="chat-row" [class.own]="msg.userId === currentUserId" [class.other]="msg.userId !== currentUserId">
+              @if (msg.userId !== currentUserId) {
+                <div class="chat-meta">
+                  <span class="chat-user other">{{ msg.displayName }}</span>
+                </div>
+              }
+              <div class="chat-bubble-row">
+                @if (msg.userId === currentUserId) {
+                  <span class="chat-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+                }
+                <div class="chat-bubble">{{ msg.text }}</div>
+                @if (msg.userId !== currentUserId) {
+                  <span class="chat-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+        <div class="chat-input-area">
+          <input
+            class="chat-input"
+            type="text"
+            [(ngModel)]="chatInputText"
+            (keydown.enter)="sendChatMessage()"
+            placeholder="メッセージを入力..."
+            maxlength="200"
+          />
+          <button class="chat-send-btn" (click)="sendChatMessage()">送信</button>
+        </div>
+      </div>
     </div>
   }
 </div>

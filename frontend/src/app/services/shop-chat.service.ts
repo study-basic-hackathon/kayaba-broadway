@@ -1,5 +1,6 @@
 import { Injectable, NgZone, inject, signal } from '@angular/core';
 import PartySocket from 'partysocket';
+import { environment } from '../../environments/environment';
 
 export interface ChatMessage {
   userId: string;
@@ -41,7 +42,7 @@ export class ShopChatService {
     if (!token) return;
 
     this.socket = new PartySocket({
-      host: 'localhost:1999',
+      host: environment.partykitHost,
       room: `shop-${shopId}`,
       query: { token },
     });

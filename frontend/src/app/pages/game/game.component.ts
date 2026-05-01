@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ElementRef, ViewChild, NgZone, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, ViewChild, NgZone, signal, effect, inject } from '@angular/core';
 import {
   Application,
   Graphics,
@@ -10,8 +10,11 @@ import {
 } from 'pixi.js';
 import PartySocket from 'partysocket';
 import { ActivatedRoute } from '@angular/router';
-import { inject } from '@angular/core';
+import { FormsModule, } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
+import { ShopChatService } from '../../services/shop-chat.service';
+import { environment } from '../../../environments/environment';
 
 interface Shop {
   id: string;
@@ -32,11 +35,14 @@ interface OtherPlayer {
 @Component({
   selector: 'app-game',
   standalone: true,
+  imports: [FormsModule, DatePipe],
   templateUrl: './game.component.html',
   styleUrl: './game.component.scss',
 })
 export class GameComponent implements OnInit, OnDestroy {
   @ViewChild('gameContainer', { static: true }) gameContainer!: ElementRef;
+  @ViewChild('chatMessages') chatMessagesEl?: ElementRef<HTMLDivElement>;
+
   private app!: Application;
   private player!: Graphics;
   private playerLabel!: PixiText;
@@ -44,10 +50,48 @@ export class GameComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private auth = inject(AuthService);
   private ngZone = inject(NgZone);
+  shopChatService = inject(ShopChatService);
+
+  chatInputText = '';
 
   // 店舗ゾーン判定用
   private shops: Shop[] = [];
   currentShop = signal<Shop | null>(null);
+
+  constructor() {
+    // currentShop が変化したら shop チャットの接続・切断を制御する
+    effect(() => {
+      const shop = this.currentShop();
+      if (shop) {
+        const token = this.auth.getAccessToken();
+        this.shopChatService.connect(shop.id, token);
+      } else {
+        this.shopChatService.disconnect();
+      }
+    });
+
+    // メッセージが増えたら、DOM更新後に確実に一番下までスクロール
+    effect(() => {
+      this.shopChatService.messages();
+      setTimeout(() => {
+        if (this.chatMessagesEl) {
+          const el = this.chatMessagesEl.nativeElement;
+          el.scrollTop = el.scrollHeight;
+        }
+      });
+    });
+  }
+
+  sendChatMessage() {
+    const text = this.chatInputText.trim();
+    if (!text) return;
+    this.shopChatService.sendMessage(text);
+    this.chatInputText = '';
+  }
+
+  get currentUserId(): string | undefined {
+    return this.auth.user()?.id;
+  }
 
   // 現在押されているキーを管理するオブジェクト
   private keys: Record<string, boolean> = {};
@@ -93,7 +137,7 @@ export class GameComponent implements OnInit, OnDestroy {
   private async loadShops(fieldId: string) {
     const token = this.auth.getAccessToken();
     try {
-      const res = await fetch(`http://localhost:8787/fields/${fieldId}/shops`, {
+      const res = await fetch(`${environment.apiBaseUrl}/fields/${fieldId}/shops`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json() as { shops: Shop[] };
@@ -227,7 +271,7 @@ export class GameComponent implements OnInit, OnDestroy {
     const token = this.auth.getAccessToken();
 
     this.socket = new PartySocket({
-      host: '127.0.0.1:1999',
+      host: environment.partykitHost,
       room: fieldId,
       ...(token ? { query: { token } } : {}),
     });
@@ -377,6 +421,7 @@ export class GameComponent implements OnInit, OnDestroy {
 
     // WebSocket接続を安全に切断
     this.socket?.close();
+    this.shopChatService.disconnect();
 
     // PixiJSのtickerを停止・解除してからcanvasやメモリを解放
     this.app?.ticker.remove(this.update, this);

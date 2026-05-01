@@ -157,7 +157,7 @@ export interface ChatMessage {
 
 ### フェーズ3: フロントエンド — 店舗ゾーン入退出と接続を連動
 
-- [ ] `game.component.ts` で `currentShop` の変化を `effect()` で監視し、接続・切断を制御する
+- [x] `game.component.ts` で `currentShop` の変化を `effect()` で監視し、接続・切断を制御する
   ```typescript
   effect(() => {
     const shop = this.currentShop();
@@ -174,7 +174,7 @@ export interface ChatMessage {
 
 ### フェーズ4: フロントエンド — チャット UI の実装
 
-- [ ] `game.component.html` の既存ショップオーバーレイにチャット UI を追加する
+- [x] `game.component.html` の既存ショップオーバーレイにチャット UI を追加する
 
 ```html
 @if (currentShop) {
@@ -207,7 +207,7 @@ export interface ChatMessage {
 }
 ```
 
-- [ ] `game.component.ts` にチャット送信メソッドを追加する
+- [x] `game.component.ts` にチャット送信メソッドを追加する
   ```typescript
   chatInputText = '';
 
@@ -219,7 +219,7 @@ export interface ChatMessage {
   }
   ```
 
-- [ ] `game.component.scss` にチャット UI のスタイルを追加する
+- [x] `game.component.scss` にチャット UI のスタイルを追加する
   - メッセージエリアは固定高さ（例: 200px）でスクロール可能
   - 新着メッセージ受信時に自動スクロール（`scrollTop = scrollHeight`）
 
