@@ -2,10 +2,11 @@ import { Hono, type Context } from "hono";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { fields, shops } from "../db/schema";
+import { type AppType } from "../types";
 
-const router = new Hono<{ Bindings: Env }>();
+const router = new Hono<AppType>();
 
-async function fetchField(c: Context<{ Bindings: Env }>, id: string) {
+async function fetchField(c: Context<AppType>, id: string) {
   const db = drizzle(c.env.DB!);
   return await db.select().from(fields).where(eq(fields.id, id)).get();
 }

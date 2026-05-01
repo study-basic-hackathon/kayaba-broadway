@@ -1,18 +1,19 @@
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, lt } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { Hono, Context } from "hono";
+import { Hono } from "hono";
+import { getCookie, setCookie } from "hono/cookie";
 import { sign, verify } from "hono/jwt";
 import { z } from "zod";
 import { ALG } from "../constants";
-import { users, refreshTokens } from "../db/schema";
-import { setCookie, getCookie } from "hono/cookie";
+import { refreshTokens, users } from "../db/schema";
+import { type AppType } from "../types";
 import { hashPassword, verifyPassword } from "../utils/hash";
 
 const ACCESS_TOKEN_EXPIRES_IN = 60 * 15;
 const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24 * 7;
 
-const router = new Hono<{ Bindings: Env }>();
+const router = new Hono<AppType>();
 
 const registerSchema = z
   .object({

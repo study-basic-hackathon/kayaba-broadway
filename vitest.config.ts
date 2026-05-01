@@ -22,6 +22,6 @@ export default defineConfig({
   test: {
     globals: true,
     setupFiles: ["./src/routes/__tests__/utils/setup.ts"],
-    exclude: ["frontend/**", "node_modules/**"],
+    exclude: ["frontend/**", "node_modules/**", "partykit/**"],
   },
 });
