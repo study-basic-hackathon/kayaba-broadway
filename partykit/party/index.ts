@@ -34,6 +34,10 @@ type MoveMessage = {
   message_type: "move";
   data: { x: number; y: number };
 };
+type ChatSendMessage = {
+  message_type: "chat";
+  data: { text: string };
+};
 
 // Partykit → フロントエンド
 type MoveBroadcastMessage = {
@@ -44,6 +48,21 @@ type JoinMessage = { message_type: "join"; data: { userId: string; displayName: 
 type LeaveMessage = { message_type: "leave"; data: { userId: string } };
 type InitMessage = { message_type: "init"; data: { users: UserState[] } };
 type BroadcastMessage = MoveBroadcastMessage | JoinMessage | LeaveMessage;
+
+type ChatEntry = {
+  userId: string;
+  displayName: string;
+  text: string;
+  timestamp: number;
+};
+type ChatBroadcastMessage = {
+  message_type: "chat";
+  data: ChatEntry;
+};
+type ChatHistoryMessage = {
+  message_type: "chat_history";
+  data: { messages: ChatEntry[] };
+};
 
 // ────────────────────────────────────────────
 // JWT 検証（HS256）
@@ -122,6 +141,9 @@ export default class FieldRoom implements Party.Server {
   // connectionId → UserState
   private users = new Map<string, UserState>();
 
+  private chatHistory: ChatEntry[] = [];
+  private readonly MAX_CHAT_HISTORY = 50;
+
   constructor(readonly room: Party.Room) {}
 
   private findUserStateByUserId(userId: string): UserState | undefined {
@@ -192,6 +214,13 @@ export default class FieldRoom implements Party.Server {
     };
     conn.send(JSON.stringify(initMessage));
 
+    // チャット履歴を送信
+    const historyMsg: ChatHistoryMessage = {
+      message_type: "chat_history",
+      data: { messages: this.chatHistory },
+    };
+    conn.send(JSON.stringify(historyMsg));
+
     // その userId の最初の接続時のみ、他のユーザー全員に join を通知
     if (!hadExistingConnection) {
       const joinMessage: JoinMessage = { message_type: "join", data: { userId, displayName, x: 0, y: 0 } };
@@ -201,7 +230,30 @@ export default class FieldRoom implements Party.Server {
 
   onMessage(message: string, sender: Party.Connection) {
     try {
-      const msg = JSON.parse(message) as MoveMessage;
+      const msg = JSON.parse(message) as MoveMessage | ChatSendMessage;
+
+      if (msg.message_type === "chat") {
+        const user = this.users.get(sender.id);
+        if (!user) return;
+
+        const text = typeof msg.data.text === "string" ? msg.data.text.trim() : "";
+        if (text.length === 0 || text.length > 200) return;
+
+        const entry: ChatEntry = {
+          userId: user.userId,
+          displayName: user.displayName,
+          text,
+          timestamp: Date.now(),
+        };
+        this.chatHistory.push(entry);
+        if (this.chatHistory.length > this.MAX_CHAT_HISTORY) {
+          this.chatHistory.shift();
+        }
+
+        const broadcastMsg: ChatBroadcastMessage = { message_type: "chat", data: entry };
+        this.room.broadcast(JSON.stringify(broadcastMsg));
+        return;
+      }
 
       if (msg.message_type === "move") {
         const user = this.users.get(sender.id);
