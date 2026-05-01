@@ -6,6 +6,14 @@ import {
 import path from "path";
 
 export default defineConfig({
+  esbuild: {
+    sourcemap: false,
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   plugins: [
     cloudflareTest(async () => {
       const migrations = await readD1Migrations(

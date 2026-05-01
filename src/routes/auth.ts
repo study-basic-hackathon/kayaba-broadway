@@ -1,3 +1,4 @@
+import { createStripeCustomer, fetchUserPayment } from "@/services/payment";
 import { zValidator } from "@hono/zod-validator";
 import { and, eq, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -89,6 +90,12 @@ router.post("/register", zValidator("json", registerSchema), async (c) => {
     maxAge: REFRESH_TOKEN_EXPIRES_IN,
   });
 
+  const stripe = c.get("stripe");
+  const userPaymentRecord = await fetchUserPayment(db, result.id);
+  if (!userPaymentRecord) {
+    await createStripeCustomer(stripe, db, result.id, result.email);
+  }
+
   const { password_hash: _, ...user } = result;
 
   return c.json({ accessToken, user });
@@ -170,6 +177,12 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
     sameSite: "Strict",
     maxAge: REFRESH_TOKEN_EXPIRES_IN,
   });
+
+  const stripe = c.get("stripe");
+  const userPaymentRecord = await fetchUserPayment(db, storedUser.id);
+  if (!userPaymentRecord) {
+    await createStripeCustomer(stripe, db, storedUser.id, storedUser.email);
+  }
 
   const { password_hash: _, ...user } = storedUser;
 
