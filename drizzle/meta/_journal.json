@@ -8,6 +8,13 @@
       "when": 1776686739743,
       "tag": "0000_wild_mentor",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1777624176125,
+      "tag": "0001_whole_secret_warriors",
+      "breakpoints": true
     }
   ]
 }
