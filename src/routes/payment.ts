@@ -1,24 +1,51 @@
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
-import { AppVariables } from "..";
-import { HTTPException } from "hono/http-exception";
 import Stripe from "stripe";
+import { user_payment_providers } from "../db/schema";
+import { type AppType, AppDatabase } from "../types";
 
-const router = new Hono<{
-  Variables: AppVariables;
-  Bindings: Env;
-}>();
+type UserPaymentProvider = typeof user_payment_providers.$inferSelect;
+const router = new Hono<AppType>();
 
 router.get("/setup", async (c) => {
+  const payload = c.get("jwtPayload");
   const stripe = c.get("stripe");
+  const db = drizzle(c.env.DB!);
+
+  const userPaymentRecord = (await db
+    .select()
+    .from(user_payment_providers)
+    .where(eq(user_payment_providers.user_id, payload.id))
+    .get()) as UserPaymentProvider | undefined;
+
+  if (!userPaymentRecord) {
+    const customer = await createStripeCustomer(
+      stripe,
+      db,
+      payload.id,
+      payload.email,
+    );
+
+    return c.json({ customer }, 200);
+  }
+
   try {
-    const customer = await stripe.customers.retrieve("cus_UR3TcxmbYwv3eR");
+    const customer = await stripe.customers.retrieve(
+      userPaymentRecord.customer_id,
+    );
     return c.json({ customer }, 200);
   } catch (err) {
-    if (err instanceof Stripe.errors.StripeInvalidRequestError) {
-      const customer = await stripe.customers.create({
-        name: "Jenny Rosen",
-        email: "jennyrosen@example.com",
-      });
+    if (
+      err instanceof Stripe.errors.StripeInvalidRequestError &&
+      err.code === "resource_missing"
+    ) {
+      const customer = await createStripeCustomer(
+        stripe,
+        db,
+        payload.id,
+        payload.email,
+      );
 
       return c.json({ customer }, 200);
     }
@@ -31,42 +58,31 @@ router.get("/setup", async (c) => {
   }
 });
 
-router.get("/checkout", async (c) => {
-  const stripe = c.get("stripe");
+// router.get("/checkout", async (c) => {
+//   const stripe = c.get("stripe");
 
-  const session = await stripe.checkout.sessions.create({
-    line_items: [{ price: "price_1TRsxE1lp8GZIfDzFJCFOPUQ", quantity: 1 }],
-    mode: "payment",
-    success_url: `http://127.0.0.1:8787/payment/success`,
+//   const session = await stripe.checkout.sessions.create({
+//     line_items: [{ price: "price_1TRsxE1lp8GZIfDzFJCFOPUQ", quantity: 1 }],
+//     mode: "payment",
+//     success_url: `http://127.0.0.1:8787/payment/success`,
+//   });
+
+//   return c.json({ session });
+// });
+
+async function createStripeCustomer(
+  stripe: Stripe,
+  db: AppDatabase,
+  user_id: string,
+  email: string,
+): Promise<Stripe.Customer> {
+  const customer = await stripe.customers.create({ email });
+  await db.insert(user_payment_providers).values({
+    user_id,
+    provider: "stripe",
+    customer_id: customer.id,
   });
-
-  return c.json({ session });
-});
+  return customer;
+}
 
 export default router;
-
-// router.get("/session-status", async (c) => {
-//   const stripe = new Stripe(c.env.STRIPE_API_KEY);
-
-//   const session = await stripe.checkout.sessions.retrieve(
-//     c.req.query.session_id,
-//     {
-//       expand: ["payment_intent", "subscription"],
-//     },
-//   );
-
-//   c.json({
-//     status: session.status,
-//     payment_status: session.payment_status,
-//     payment_intent_id: session.payment_intent?.id,
-//     payment_intent_status: session.payment_intent?.status,
-//     subscription_id: session.payment_intent ? null : session.subscription?.id,
-//     subscription_status: session.payment_intent
-//       ? null
-//       : session.subscription?.status,
-//   });
-// });
-
-// router.get("/payment", async (c) => {
-//   return c.json({ msg: "payment" });
-// });

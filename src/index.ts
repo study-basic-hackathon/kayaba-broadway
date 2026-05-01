@@ -1,25 +1,18 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createFactory } from "hono/factory";
-import type { JwtVariables } from "hono/jwt";
 import { jwt } from "hono/jwt";
+import Stripe from "stripe";
 import { ALG } from "./constants";
 import auth from "./routes/auth";
-import users from "./routes/users";
-import shops from "./routes/shops";
-import products from "./routes/products";
 import fields from "./routes/fields";
 import payment from "./routes/payment";
-import Stripe from "stripe";
+import products from "./routes/products";
+import shops from "./routes/shops";
+import users from "./routes/users";
+import { type AppType } from "./types";
 
-export type AppVariables = JwtVariables & {
-  stripe: Stripe;
-};
-
-const app = new Hono<{
-  Variables: AppVariables;
-  Bindings: Env;
-}>();
+const app = new Hono<AppType>();
 
 app.use(
   "/*",
