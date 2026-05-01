@@ -31,14 +31,18 @@ router.get("/setup", async (c) => {
   }
 });
 
-const checkoutSchema = z.object({
+const lineItemSchema = z.object({
   product_name: z.string(),
   unit_amount: z.number().int().positive(),
   quantity: z.number().int().positive(),
 });
 
+const checkoutSchema = z.object({
+  items: z.array(lineItemSchema).min(1),
+});
+
 router.post("/checkout", zValidator("json", checkoutSchema), async (c) => {
-  const { product_name, unit_amount, quantity } = c.req.valid("json");
+  const { items } = c.req.valid("json");
   const payload = c.get("jwtPayload");
   const stripe = c.get("stripe");
   const db = drizzle(c.env.DB!);
@@ -52,16 +56,14 @@ router.post("/checkout", zValidator("json", checkoutSchema), async (c) => {
 
     const session = await stripe.checkout.sessions.create({
       customer: userPaymentRecord.customer_id,
-      line_items: [
-        {
-          price_data: {
-            currency: "jpy",
-            product_data: { name: product_name },
-            unit_amount,
-          },
-          quantity,
+      line_items: items.map(({ product_name, unit_amount, quantity }) => ({
+        price_data: {
+          currency: "jpy",
+          product_data: { name: product_name },
+          unit_amount,
         },
-      ],
+        quantity,
+      })),
       saved_payment_method_options: {
         payment_method_save: "enabled",
       },
