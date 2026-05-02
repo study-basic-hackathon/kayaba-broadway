@@ -6,6 +6,7 @@ import {
   isExistTestRefreshToken,
 } from "./utils/fixture";
 import { env } from "cloudflare:workers";
+import * as paymentService from "@/services/payment";
 
 function registerRequest(body: object) {
   return auth.request(
@@ -49,6 +50,18 @@ function accessTokenRefreshRequest(refreshToken: string) {
   );
 }
 
+beforeEach(() => {
+  vi.spyOn(paymentService, "fetchUserPayment").mockResolvedValue(undefined);
+  vi.spyOn(paymentService, "createStripeCustomer").mockResolvedValue({
+    id: "cus_test123",
+    email: "test@example.com",
+  } as any);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("POST:/register", () => {
   test("正常系", async () => {
     const res = await registerRequest({
@@ -57,6 +70,7 @@ describe("POST:/register", () => {
       password: "password",
       confirm_password: "password",
     });
+
     expect(res.status).toBe(200);
     const { user } = (await res.json()) as { user: { id: string } };
     await deleteTestUser(user.id);
@@ -81,7 +95,7 @@ describe("POST:/register", () => {
 });
 
 describe("POST:/login", () => {
-  test("正常系", async () => {
+  test("正常系:accessTokenが返ってくる", async () => {
     const email = "test@example.com";
     const password = "password";
     const user = await insertTestUser({ email, password });
@@ -94,6 +108,22 @@ describe("POST:/login", () => {
       accessToken: string;
     };
     expect(accessToken).toMatch(/^[\w-]+\.[\w-]+\.[\w-]+$/);
+    await deleteTestUser(user.id);
+  });
+
+  test("正常系:refreshTokenがCookieにセットされる", async () => {
+    const email = "test@example.com";
+    const password = "password";
+    const user = await insertTestUser({ email, password });
+    const res = await loginRequest({
+      email,
+      password,
+    });
+    expect(res.status).toBe(200);
+
+    const setCookieHeader = res.headers.get("Set-Cookie");
+    expect(setCookieHeader).toContain("refreshToken=");
+
     await deleteTestUser(user.id);
   });
 

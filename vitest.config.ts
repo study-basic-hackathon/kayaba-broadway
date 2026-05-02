@@ -6,6 +6,14 @@ import {
 import path from "path";
 
 export default defineConfig({
+  esbuild: {
+    sourcemap: false,
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   plugins: [
     cloudflareTest(async () => {
       const migrations = await readD1Migrations(
@@ -22,6 +30,6 @@ export default defineConfig({
   test: {
     globals: true,
     setupFiles: ["./src/routes/__tests__/utils/setup.ts"],
-    exclude: ["frontend/**", "node_modules/**"],
+    exclude: ["frontend/**", "node_modules/**", "partykit/**"],
   },
 });
