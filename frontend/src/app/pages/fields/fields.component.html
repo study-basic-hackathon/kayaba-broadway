@@ -41,6 +41,15 @@
         </div>
       </div>
     </div>
+
+    <button
+      class="sidebar-btn"
+      [class.active]="activeNav() === 'purchase'"
+      (click)="activeNav.set('purchase'); purchase()"
+    >
+      <span class="icon">⭐</span>
+      <span>お試し購入</span>
+    </button>
   </aside>
 
   <main class="main">
