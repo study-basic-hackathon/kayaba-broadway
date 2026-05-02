@@ -68,6 +68,9 @@ export class GameComponent implements OnInit, OnDestroy {
   private animationSpeed = 16; // 数値が大きいほどプレイヤーアニメーションがゆっくりになる
   private walkFrameCount = 3;
 
+  private tileScaled = this.tileSize * this.scale;
+  private hitCharacter = (this.tileSize * this.scale) / 2;
+
   async ngOnInit() {
     await this.initPixi();
     this.initSocket();
@@ -92,13 +95,12 @@ export class GameComponent implements OnInit, OnDestroy {
 
     const texture = this.getPlayerTexture('down', 0);
 
-    const playerSize = this.tileSize * this.scale;
-
     this.player = new Sprite(texture);
+    this.player.anchor.set(0.5);
     this.player.x = this.x;
     this.player.y = this.y;
-    this.player.width = playerSize;
-    this.player.height = playerSize;
+    this.player.width = this.tileScaled;
+    this.player.height = this.tileScaled;
     this.app.stage.addChild(this.player);
 
     // 初期カメラ位置をプレイヤーが画面中央になるように設定
@@ -282,12 +284,20 @@ export class GameComponent implements OnInit, OnDestroy {
 
   // 移動先に当たり判定があるか確認
   private canMove(nextX: number, nextY: number): boolean {
-    const tileScaled = this.tileSize * this.scale; // 64px
-    const tileX = Math.floor(nextX / tileScaled);
-    const tileY = Math.floor(nextY / tileScaled);
-    // タイルのインデックスを計算（横方向のタイル数を掛けて行を特定）
-    const index = tileY * this.mapCols + tileX;
-    return !this.collisionTiles.has(index);
+
+    const points = [
+      [nextX - this.hitCharacter, nextY - this.hitCharacter],
+      [nextX + this.hitCharacter, nextY - this.hitCharacter],
+      [nextX - this.hitCharacter, nextY + this.hitCharacter],
+      [nextX + this.hitCharacter, nextY + this.hitCharacter],
+    ];
+
+    return points.every(([px,py]) => {
+      const tileX = Math.floor(px / this.tileScaled);
+      const tileY = Math.floor(py / this.tileScaled);
+      const index = tileY * this.mapCols + tileX;
+      return !this.collisionTiles.has(index);
+    })
   }
 
   // 毎フレーム実行される処理
