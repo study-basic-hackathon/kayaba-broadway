@@ -21,6 +21,7 @@
 | GET      | `/shops/:id`          | 必要 | 店舗詳細を取得                                             |
 | GET      | `/shops/:id/products` | 必要 | 指定店舗の商品一覧を取得                                   |
 | GET      | `/products/:id`       | 必要 | 商品詳細を取得                                             |
+| POST     | `/payment/checkout`   | 必要 | Stripeの決済ページURLを取得                                |
 
 ## curl例
 
@@ -105,4 +106,26 @@ curl -X GET "http://localhost:8787/shops/shop-1/products" \
 ```bash
 curl -X GET "http://localhost:8787/products/product-1" \
   -H "Authorization: Bearer <accessToken>"
+```
+
+### 12. 決済ページURLの取得
+
+```bash
+curl -X POST "http://localhost:8787/payment/checkout" \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      {
+        "product_name": "サンプル商品1",
+        "unit_amount": 500,
+        "quantity": 1
+      },
+      {
+        "product_name": "サンプル商品2",
+        "unit_amount": 1000,
+        "quantity": 2
+      }
+    ]
+  }'
 ```
