@@ -154,14 +154,14 @@ npm run dev
 # インストール（未インストールの場合）
 npm install -g wscat
 
-# バックエンドでトークンを取得してから接続
-wscat -c "ws://localhost:1999/party/field-1" -H "Authorization: Bearer <accessToken>"
+# バックエンドでトークンを取得してから接続（クエリパラメータでトークンを渡す）
+wscat -c "ws://localhost:1999/party/field-1?token=<accessToken>"
 
 # 移動メッセージを送信
-> {"type":"move","x":100,"y":200}
+> {"message_type":"move","data":{"x":100,"y":200}}
 ```
 
-> `userId` は接続時の JWT の `sub` から決定されます。`move` メッセージに `userId` を含めても無視されます。
+> `userId` は接続時の JWT の `id` から決定されます。`move` メッセージに `userId` を含めても無視されます。
 
 ### デプロイ
 

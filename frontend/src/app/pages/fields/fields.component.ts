@@ -56,10 +56,13 @@ export class FieldsComponent implements OnInit {
       error: (error) => console.log(error),
     });
   }
-
   onClick(id: string) {
-    this.router.navigate(['/field'], { queryParams: { id } });
+    this.router.navigate(['/game', id]);
   }
+
+  // onClick(id: string) {
+  //   this.router.navigate(['/field'], { queryParams: { id } });
+  // }
 
   logout() {
     this.auth.logout();
