@@ -30,6 +30,8 @@ cp .dev.vars.example .dev.vars
 ```bash
 # .dev.vars
 JWT_SECRET=your_secret_here
+STRIPE_API_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=xxx
 ```
 
 **Partykit**: `partykit/.env.example` をコピーして `partykit/.env` を作成し、値を埋める。
@@ -44,6 +46,14 @@ JWT_SECRET=your_secret_here  # バックエンドと同じ値を設定する
 ```
 
 ## 起動
+
+### マイグレーション
+
+はじめて起動する前、またはマイグレーションファイルに変更があった場合は以下を実行する。
+
+```bash
+npx wrangler d1 migrations apply kayaba-broadway --local
+```
 
 **バックエンド**（ルートディレクトリ）:
 
