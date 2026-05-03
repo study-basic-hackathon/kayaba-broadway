@@ -73,7 +73,7 @@ export class FieldsComponent implements OnInit {
     const key = 'sample-vol1.pdf';
 
     this.http
-      .get(`http://localhost:8787/storage/download/${key}`, {
+      .get(`http://localhost:8787/purchase/download/${key}`, {
         responseType: 'blob',
       })
       .subscribe({

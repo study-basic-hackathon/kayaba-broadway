@@ -10,7 +10,7 @@ import payment from "./routes/payment";
 import products from "./routes/products";
 import shops from "./routes/shops";
 import users from "./routes/users";
-import storage from "./routes/storage";
+import purchase from "./routes/purchase";
 import { type AppType } from "./types";
 
 const app = new Hono<AppType>();
@@ -61,6 +61,6 @@ app.route("/shops", shops);
 app.route("/products", products);
 app.route("/fields", fields);
 app.route("/payment", payment);
-app.route("/storage", storage);
+app.route("/purchase", purchase);
 
 export default app;
