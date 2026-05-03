@@ -29,12 +29,16 @@ npx wrangler d1 migrations apply kayaba-broadway --local
 
 ```
 drizzle/
-├── 0000_wild_mentor.sql   # テーブル定義（初回）
-└── 0001_seeder.sql        # 初期データ投入
+├── 0000_wild_mentor.sql          # テーブル定義（初回）
+├── 0001_seeder.sql               # 初期データ投入
+├── 0002_perpetual_deadpool.sql   # shops テーブルにゾーン情報カラム追加（DDL）
+└── 0003_shop_zone_data.sql       # shops の既存レコードにゾーン情報を投入（DML）
 ```
 
 - `0000_wild_mentor.sql`: `users`, `fields`, `shops`, `products`, `purchases`, `refresh_tokens` テーブルの作成
 - `0001_seeder.sql`: 開発・テスト用の初期データ（ユーザー5件、フィールド・ショップ・商品・購入履歴）
+- `0002_perpetual_deadpool.sql`: `shops` テーブルに `zone_col`, `zone_row`, `zone_width`, `zone_height` カラムを追加
+- `0003_shop_zone_data.sql`: 既存の `shops` レコードにゾーン情報を UPDATE で投入
 
 **3. （任意）適用状況を確認する**
 

@@ -30,6 +30,8 @@ cp .dev.vars.example .dev.vars
 ```bash
 # .dev.vars
 JWT_SECRET=your_secret_here
+STRIPE_API_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=xxx
 ```
 
 **Partykit**: `partykit/.env.example` をコピーして `partykit/.env` を作成し、値を埋める。
@@ -44,6 +46,20 @@ JWT_SECRET=your_secret_here  # バックエンドと同じ値を設定する
 ```
 
 ## 起動
+
+### マイグレーション
+
+はじめて起動する前、またはマイグレーションファイルに変更があった場合は以下を実行する。
+
+```bash
+npx wrangler d1 migrations apply kayaba-broadway --local
+```
+
+初回セットアップ時はシードデータも投入する。
+
+```bash
+npx wrangler d1 execute kayaba-broadway --local --file=seeds/seed.sql
+```
 
 **バックエンド**（ルートディレクトリ）:
 
@@ -154,14 +170,14 @@ npm run dev
 # インストール（未インストールの場合）
 npm install -g wscat
 
-# バックエンドでトークンを取得してから接続
-wscat -c "ws://localhost:1999/party/field-1" -H "Authorization: Bearer <accessToken>"
+# バックエンドでトークンを取得してから接続（クエリパラメータでトークンを渡す）
+wscat -c "ws://localhost:1999/party/field-1?token=<accessToken>"
 
 # 移動メッセージを送信
-> {"type":"move","x":100,"y":200}
+> {"message_type":"move","data":{"x":100,"y":200}}
 ```
 
-> `userId` は接続時の JWT の `sub` から決定されます。`move` メッセージに `userId` を含めても無視されます。
+> `userId` は接続時の JWT の `id` から決定されます。`move` メッセージに `userId` を含めても無視されます。
 
 ### デプロイ
 

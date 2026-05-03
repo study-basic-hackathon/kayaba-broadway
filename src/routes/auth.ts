@@ -59,6 +59,7 @@ router.post("/register", zValidator("json", registerSchema), async (c) => {
     {
       id: result.id,
       email: result.email,
+      display_name: result.display_name,
       exp: nowUnix + ACCESS_TOKEN_EXPIRES_IN,
     },
     c.env.JWT_SECRET,
@@ -137,6 +138,7 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
     {
       id: storedUser.id,
       email: storedUser.email,
+      display_name: storedUser.display_name,
       exp: nowUnix + ACCESS_TOKEN_EXPIRES_IN,
     },
     c.env.JWT_SECRET,
@@ -216,15 +218,6 @@ router.post("/refresh", async (c) => {
 
   try {
     const payload = await verify(refreshToken, c.env.JWT_SECRET, ALG);
-    const accessToken = await sign(
-      {
-        id: payload.id,
-        email: payload.email,
-        exp: nowUnix + ACCESS_TOKEN_EXPIRES_IN,
-      },
-      c.env.JWT_SECRET,
-      ALG,
-    );
 
     const storedUser = await db
       .select()
@@ -232,7 +225,23 @@ router.post("/refresh", async (c) => {
       .where(eq(users.id, payload.id as string))
       .get();
 
-    const { password_hash: _, ...user } = storedUser!;
+    if (!storedUser) {
+      await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken));
+      return c.json({ error: "ユーザーが存在しません" }, 401);
+    }
+
+    const accessToken = await sign(
+      {
+        id: storedUser.id,
+        email: storedUser.email,
+        display_name: storedUser.display_name,
+        exp: nowUnix + ACCESS_TOKEN_EXPIRES_IN,
+      },
+      c.env.JWT_SECRET,
+      ALG,
+    );
+
+    const { password_hash: _, ...user } = storedUser;
 
     return c.json({ accessToken, user });
   } catch (error) {

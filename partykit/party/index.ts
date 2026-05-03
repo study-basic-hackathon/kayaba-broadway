@@ -6,6 +6,7 @@ import type * as Party from "partykit/server";
 
 type UserState = {
   userId: string;
+  displayName: string;
   x: number;
   y: number;
 };
@@ -33,32 +34,56 @@ type MoveMessage = {
   message_type: "move";
   data: { x: number; y: number };
 };
+type ChatSendMessage = {
+  message_type: "chat";
+  data: { text: string };
+};
 
 // Partykit → フロントエンド
 type MoveBroadcastMessage = {
   message_type: "move";
   data: { userId: string; x: number; y: number };
 };
-type JoinMessage = { message_type: "join"; data: { userId: string; x: number; y: number } };
+type JoinMessage = { message_type: "join"; data: { userId: string; displayName: string; x: number; y: number } };
 type LeaveMessage = { message_type: "leave"; data: { userId: string } };
 type InitMessage = { message_type: "init"; data: { users: UserState[] } };
 type BroadcastMessage = MoveBroadcastMessage | JoinMessage | LeaveMessage;
+
+type ChatEntry = {
+  userId: string;
+  displayName: string;
+  text: string;
+  timestamp: number;
+};
+type ChatBroadcastMessage = {
+  message_type: "chat";
+  data: ChatEntry;
+};
+type ChatHistoryMessage = {
+  message_type: "chat_history";
+  data: { messages: ChatEntry[] };
+};
 
 // ────────────────────────────────────────────
 // JWT 検証（HS256）
 // ────────────────────────────────────────────
 
-function decodeBase64Url(value: string): string {
+function decodeBase64UrlToBytes(value: string): Uint8Array {
   const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
   const remainder = base64.length % 4;
   const padded = remainder === 0 ? base64 : base64 + "=".repeat(4 - remainder);
-  return atob(padded);
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
 }
 
 async function verifyJwt(
   token: string,
   secret: string
-): Promise<{ id: string } | null> {
+): Promise<{ id: string; displayName: string } | null> {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
@@ -77,14 +102,12 @@ async function verifyJwt(
     );
 
     const data = enc.encode(`${headerB64}.${payloadB64}`);
-    const signature = Uint8Array.from(decodeBase64Url(signatureB64), (c) =>
-      c.charCodeAt(0)
-    );
+    const signature = decodeBase64UrlToBytes(signatureB64);
 
     const valid = await crypto.subtle.verify("HMAC", key, signature, data);
     if (!valid) return null;
 
-    const payload = JSON.parse(decodeBase64Url(payloadB64)) as Record<
+    const payload = JSON.parse(new TextDecoder().decode(decodeBase64UrlToBytes(payloadB64))) as Record<
       string,
       unknown
     >;
@@ -101,7 +124,10 @@ async function verifyJwt(
       return null;
     }
 
-    return { id: payload.id };
+    const displayName =
+      typeof payload.display_name === "string" ? payload.display_name : payload.id.slice(0, 6);
+
+    return { id: payload.id, displayName };
   } catch {
     return null;
   }
@@ -114,6 +140,9 @@ async function verifyJwt(
 export default class FieldRoom implements Party.Server {
   // connectionId → UserState
   private users = new Map<string, UserState>();
+
+  private chatHistory: ChatEntry[] = [];
+  private readonly MAX_CHAT_HISTORY = 50;
 
   constructor(readonly room: Party.Room) {}
 
@@ -147,43 +176,9 @@ export default class FieldRoom implements Party.Server {
     return [...usersByUserId.values()];
   }
 
-  private extractBearerToken(authorizationHeader: string | null): string | null {
-    if (!authorizationHeader) {
-      return null;
-    }
-
-    const [scheme, token] = authorizationHeader.trim().split(/\s+/, 2);
-    if (scheme?.toLowerCase() !== "bearer" || !token) {
-      return null;
-    }
-
-    return token;
-  }
-
   private getTokenFromConnectionRequest(request: Request): string | null {
-    const bearerToken = this.extractBearerToken(
-      request.headers.get("Authorization"),
-    );
-    if (bearerToken) {
-      return bearerToken;
-    }
-
-    const protocolsHeader = request.headers.get("Sec-WebSocket-Protocol");
-    if (!protocolsHeader) {
-      return null;
-    }
-
-    for (const protocol of protocolsHeader.split(",")) {
-      const trimmedProtocol = protocol.trim();
-      if (trimmedProtocol.startsWith("bearer.")) {
-        const token = trimmedProtocol.slice("bearer.".length);
-        if (token.length > 0) {
-          return token;
-        }
-      }
-    }
-
-    return null;
+    const url = new URL(request.url);
+    return url.searchParams.get("token");
   }
 
   async onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
@@ -204,11 +199,12 @@ export default class FieldRoom implements Party.Server {
     }
 
     const userId = payload.id;
+    const { displayName } = payload;
     const existingUserState = this.findUserStateByUserId(userId);
     const hadExistingConnection = existingUserState !== undefined;
 
     // 同一 userId の複数接続では同じ UserState を共有し、座標の正本を 1 つに保つ
-    const userState: UserState = existingUserState ?? { userId, x: 0, y: 0 };
+    const userState: UserState = existingUserState ?? { userId, displayName, x: 0, y: 0 };
     this.users.set(conn.id, userState);
 
     // 接続したユーザーに現在の全ユーザー位置を返す（同一 userId は重複除外し、自分自身は除く）
@@ -218,16 +214,46 @@ export default class FieldRoom implements Party.Server {
     };
     conn.send(JSON.stringify(initMessage));
 
+    // チャット履歴を送信
+    const historyMsg: ChatHistoryMessage = {
+      message_type: "chat_history",
+      data: { messages: this.chatHistory },
+    };
+    conn.send(JSON.stringify(historyMsg));
+
     // その userId の最初の接続時のみ、他のユーザー全員に join を通知
     if (!hadExistingConnection) {
-      const joinMessage: JoinMessage = { message_type: "join", data: { userId, x: 0, y: 0 } };
+      const joinMessage: JoinMessage = { message_type: "join", data: { userId, displayName, x: 0, y: 0 } };
       this.room.broadcast(JSON.stringify(joinMessage), [conn.id]);
     }
   }
 
   onMessage(message: string, sender: Party.Connection) {
     try {
-      const msg = JSON.parse(message) as MoveMessage;
+      const msg = JSON.parse(message) as MoveMessage | ChatSendMessage;
+
+      if (msg.message_type === "chat") {
+        const user = this.users.get(sender.id);
+        if (!user) return;
+
+        const text = typeof msg.data.text === "string" ? msg.data.text.trim() : "";
+        if (text.length === 0 || text.length > 200) return;
+
+        const entry: ChatEntry = {
+          userId: user.userId,
+          displayName: user.displayName,
+          text,
+          timestamp: Date.now(),
+        };
+        this.chatHistory.push(entry);
+        if (this.chatHistory.length > this.MAX_CHAT_HISTORY) {
+          this.chatHistory.shift();
+        }
+
+        const broadcastMsg: ChatBroadcastMessage = { message_type: "chat", data: entry };
+        this.room.broadcast(JSON.stringify(broadcastMsg));
+        return;
+      }
 
       if (msg.message_type === "move") {
         const user = this.users.get(sender.id);

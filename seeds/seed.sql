@@ -1,0 +1,16 @@
+INSERT INTO users (id, email, password_hash, display_name, created_at) VALUES ('550e8400-e29b-41d4-a716-446655440001', 'tanaka.shun@example.com', '7af59a5f-f671-415a-bf65-30e98f513f0e:g/l66tEMR+shkAJHxc3rZ+TpgbMfv2snsjGmykjP3OM=', '田中俊', unixepoch());
+INSERT INTO users (id, email, password_hash, display_name, created_at) VALUES ('550e8400-e29b-41d4-a716-446655440002', 'yamamoto.hana@example.com', '8c2291a7-e48a-4797-9f34-560fb7fbc59a:0FatKs/Kc/DhkJeUWjgxX0BalLGpheq3NOX4tJo34AU=', '山本花', unixepoch());
+INSERT INTO users (id, email, password_hash, display_name, created_at) VALUES ('550e8400-e29b-41d4-a716-446655440003', 'sato.kenji@example.com', '1dfd4650-b509-4299-90a4-79e2bd208442:kUcjNySK11DAtyuoFl3EU6lKtO+SwpJNo7FY6iXYidc=', '佐藤健二', unixepoch());
+INSERT INTO users (id, email, password_hash, display_name, created_at) VALUES ('550e8400-e29b-41d4-a716-446655440004', 'inoue.mika@example.com', '3ddc110b-59b5-450a-8717-75c5a166cfb7:AOSn1csKk9ZktJnTAww0jDqyD6eGNhXj+VyTyQJhs5k=', '井上美香', unixepoch());
+INSERT INTO users (id, email, password_hash, display_name, created_at) VALUES ('550e8400-e29b-41d4-a716-446655440005', 'kobayashi.ryo@example.com', 'ed28ca22-98fc-441e-a2a9-3a940d550724:ZDBkhZXKx2GF3A5FCLP1mxHyiIJsJBpAzt4m+8+JLPg=', '小林涼', unixepoch());
+
+INSERT INTO fields (id, name, description, background_url, width, height, created_at) VALUES ('f1e2d3c4-0001-0000-0000-000000000001', '茅場ブロードウェイ', '同人誌やホビーグッズが集まる仮想商店街です。', '/assets/fields/kayaba-broadway.png', 1280, 720, unixepoch());
+
+INSERT INTO shops (id, field_id, name, description, zone_col, zone_row, zone_width, zone_height, created_at) VALUES ('a1b2c3d4-0001-0000-0000-000000000001', 'f1e2d3c4-0001-0000-0000-000000000001', '茅場書房', '同人誌・デジタルコンテンツを幅広く取り扱うお店です。', 10, 7, 7, 7, unixepoch());
+
+INSERT INTO products (id, shop_id, name, description, price, file_url, thumbnail_url, created_at) VALUES ('c3d4e5f6-0001-0000-0000-000000000001', 'a1b2c3d4-0001-0000-0000-000000000001', 'サンプル同人誌 Vol.1', 'サンプルの同人誌です。', 500, "r2://products/sample-vol1.pdf", "r2://thumbnails/sample-vol1.jpg", unixepoch());
+INSERT INTO products (id, shop_id, name, description, price, file_url, thumbnail_url, created_at) VALUES ('c3d4e5f6-0001-0000-0000-000000000002', 'a1b2c3d4-0001-0000-0000-000000000001', 'サンプル同人誌 Vol.2', 'サンプルの同人誌の第2巻です。', 500, "r2://products/sample-vol2.pdf", "r2://thumbnails/sample-vol2.jpg", unixepoch());
+
+INSERT INTO purchases (id, user_id, product_id, purchased_at, payment_status) VALUES ('d4e5f6a7-0001-0000-0000-000000000001', '550e8400-e29b-41d4-a716-446655440001', 'c3d4e5f6-0001-0000-0000-000000000001', unixepoch(), 'completed');
+INSERT INTO purchases (id, user_id, product_id, purchased_at, payment_status) VALUES ('d4e5f6a7-0001-0000-0000-000000000002', '550e8400-e29b-41d4-a716-446655440001', 'c3d4e5f6-0001-0000-0000-000000000002', unixepoch(), 'mock');
+INSERT INTO purchases (id, user_id, product_id, purchased_at, payment_status) VALUES ('d4e5f6a7-0001-0000-0000-000000000003', '550e8400-e29b-41d4-a716-446655440001', 'c3d4e5f6-0001-0000-0000-000000000002', unixepoch(), 'failed');
