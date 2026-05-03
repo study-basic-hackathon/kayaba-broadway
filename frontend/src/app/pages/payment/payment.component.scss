@@ -1,0 +1,109 @@
+@use '../../../styles/variables' as *;
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: $gradient-bg;
+  padding: 16px;
+  gap: 12px;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 56px;
+
+  .sidebar-btn {
+    background: none;
+    border: none;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 8px 4px;
+    border-radius: 8px;
+    font-size: 0.65rem;
+
+    .icon {
+      font-size: 1.2rem;
+    }
+
+    &.active {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+.main {
+  flex: 1;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  min-height: calc(100vh - 32px);
+
+  h1 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #1a1a1a;
+  }
+}
+
+.labels {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+
+  .label-btn {
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid #ccc;
+    background: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #333;
+
+    &.active {
+      background: $primary;
+      color: white;
+      border-color: $primary;
+    }
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.item {
+  cursor: pointer;
+
+  .thumbnail {
+    width: 100%;
+    aspect-ratio: 1;
+    background: #e8e0f0;
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+
+  .title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+  }
+
+  .updated {
+    font-size: 0.75rem;
+    color: #888;
+    margin: 0;
+  }
+}

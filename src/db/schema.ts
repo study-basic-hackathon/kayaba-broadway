@@ -95,3 +95,19 @@ export const purchases = sqliteTable("purchases", {
     .notNull()
     .default("mock"),
 });
+
+export const user_payment_providers = sqliteTable("user_payment_providers", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  provider: text("provider", {
+    enum: ["stripe"],
+  }).notNull(),
+  customer_id: text("customer_id").notNull(),
+  created_at: integer("created_at")
+    .notNull()
+    .$defaultFn(() => Math.floor(Date.now() / 1000)),
+});

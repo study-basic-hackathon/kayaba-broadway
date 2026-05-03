@@ -2,8 +2,9 @@ import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { products } from "../db/schema";
+import { type AppType } from "../types";
 
-const router = new Hono<{ Bindings: Env }>();
+const router = new Hono<AppType>();
 
 router.get("/:id", async (c) => {
   const { id } = c.req.param();

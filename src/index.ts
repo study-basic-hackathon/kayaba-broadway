@@ -1,16 +1,18 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createFactory } from "hono/factory";
-import type { JwtVariables } from "hono/jwt";
 import { jwt } from "hono/jwt";
+import Stripe from "stripe";
 import { ALG } from "./constants";
 import auth from "./routes/auth";
-import users from "./routes/users";
-import shops from "./routes/shops";
-import products from "./routes/products";
 import fields from "./routes/fields";
+import payment from "./routes/payment";
+import products from "./routes/products";
+import shops from "./routes/shops";
+import users from "./routes/users";
+import { type AppType } from "./types";
 
-const app = new Hono<{ Variables: JwtVariables; Bindings: Env }>();
+const app = new Hono<AppType>();
 
 app.use(
   "/*",
@@ -25,6 +27,15 @@ app.use(
 app.use("/*", async (c, next) => {
   await next();
   c.header("X-Content-Type-Options", "nosniff");
+});
+
+app.use(async (c, next) => {
+  const stripe = new Stripe(c.env.STRIPE_API_KEY, {
+    maxNetworkRetries: 3,
+    timeout: 30 * 1000,
+  });
+  c.set("stripe", stripe);
+  await next();
 });
 
 const factory = createFactory<{ Bindings: Env }>();
@@ -48,5 +59,6 @@ app.route("/users", users);
 app.route("/shops", shops);
 app.route("/products", products);
 app.route("/fields", fields);
+app.route("/payment", payment);
 
 export default app;

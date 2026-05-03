@@ -1,10 +1,10 @@
-import { Hono } from "hono";
-import type { JwtVariables } from "hono/jwt";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+import { Hono } from "hono";
 import { users } from "../db/schema";
+import { type AppType } from "../types";
 
-const app = new Hono<{ Variables: JwtVariables; Bindings: Env }>();
+const app = new Hono<AppType>();
 
 app.get("/me", async (c) => {
   const payload = c.get("jwtPayload");
