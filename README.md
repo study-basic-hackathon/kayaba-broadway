@@ -55,6 +55,12 @@ JWT_SECRET=your_secret_here  # バックエンドと同じ値を設定する
 npx wrangler d1 migrations apply kayaba-broadway --local
 ```
 
+初回セットアップ時はシードデータも投入する。
+
+```bash
+npx wrangler d1 execute kayaba-broadway --local --file=drizzle/seed.sql
+```
+
 **バックエンド**（ルートディレクトリ）:
 
 ```bash
