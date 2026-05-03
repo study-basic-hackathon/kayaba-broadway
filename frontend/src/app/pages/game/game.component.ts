@@ -1,7 +1,6 @@
 import { Component, OnInit, OnDestroy, ElementRef, ViewChild, NgZone, signal, effect, inject } from '@angular/core';
 import {
   Application,
-  Graphics,
   Text as PixiText,
   Assets,
   Texture,
@@ -28,8 +27,11 @@ interface Shop {
 interface OtherPlayer {
   id: string;
   displayName: string;
-  graphics: Graphics;
+  graphics: Sprite;
   label: PixiText;
+  direction: 'down' | 'left' | 'right' | 'up';
+  frame: number;
+  animationCounter: number;
 }
 
 @Component({
@@ -340,6 +342,25 @@ export class GameComponent implements OnInit, OnDestroy {
         case 'move': {
           const p = this.otherPlayers.get(msg.data.userId);
           if (p) {
+            const dx = msg.data.x - p.graphics.x;
+            const dy = msg.data.y - p.graphics.y;
+
+            // 実際に移動があった時だけ方向・アニメーションを更新
+            if (dx !== 0 || dy !== 0) {
+              if (Math.abs(dx) >= Math.abs(dy)) {
+                p.direction = dx > 0 ? 'right' : 'left';
+              } else {
+                p.direction = dy > 0 ? 'down' : 'up';
+              }
+
+              p.animationCounter++;
+              if (p.animationCounter >= this.animationSpeed) {
+                p.animationCounter = 0;
+                p.frame = (p.frame + 1) % this.walkFrameCount;
+              }
+              p.graphics.texture = this.getPlayerTexture(p.direction, p.frame);
+            }
+
             p.graphics.x = msg.data.x;
             p.graphics.y = msg.data.y;
             p.label.x = msg.data.x;
@@ -364,9 +385,12 @@ export class GameComponent implements OnInit, OnDestroy {
 
   // 他のプレイヤーをstageに追加する
   private addOtherPlayer(id: string, displayName: string, x: number, y: number) {
-    // 他のプレイヤーを赤い●で表示
-    const graphics = new Graphics();
-    graphics.circle(0, 0, 16).fill(0xe11d48);
+    // 他のプレイヤーを幽霊スプライトで表示
+    const texture = this.getPlayerTexture('down', 0);
+    const graphics = new Sprite(texture);
+    graphics.anchor.set(0.5);
+    graphics.width = this.tileScaled;
+    graphics.height = this.tileScaled;
     graphics.x = x;
     graphics.y = y;
 
@@ -381,7 +405,7 @@ export class GameComponent implements OnInit, OnDestroy {
 
     this.app.stage.addChild(graphics);
     this.app.stage.addChild(label);
-    this.otherPlayers.set(id, { id, displayName, graphics, label });
+    this.otherPlayers.set(id, { id, displayName, graphics, label, direction: 'down', frame: 0, animationCounter: 0 });
   }
 
   // 移動先に当たり判定があるか確認
