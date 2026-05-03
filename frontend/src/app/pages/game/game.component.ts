@@ -44,7 +44,7 @@ export class GameComponent implements OnInit, OnDestroy {
   @ViewChild('chatMessages') chatMessagesEl?: ElementRef<HTMLDivElement>;
 
   private app!: Application;
-  private player!: Graphics;
+  private player!: Sprite;
   private playerLabel!: PixiText;
 
   private route = inject(ActivatedRoute);
@@ -123,6 +123,19 @@ export class GameComponent implements OnInit, OnDestroy {
   // 当たり判定があるタイルのインデックスを管理するSet
   private collisionTiles = new Set<number>();
 
+  //プレイヤー関係の関数
+  private playerBaseTexture!: Texture;
+  private playerFrameWidth = 32;
+  private playerFrameHeight = 32;
+  private playerDirection: 'down' | 'left' | 'right' | 'up' = 'down';
+  private playerFrame = 0;
+  private animationCounter = 0;
+  private animationSpeed = 16; // 数値が大きいほどプレイヤーアニメーションがゆっくりになる
+  private walkFrameCount = 3;
+
+  private tileScaled = this.tileSize * this.scale;
+  private hitCharacter = (this.tileSize * this.scale) / 2;
+
   async ngOnInit() {
     await this.initPixi();
     const fieldId = this.route.snapshot.paramMap.get('fieldId') ?? 'field-1';
@@ -158,11 +171,17 @@ export class GameComponent implements OnInit, OnDestroy {
     // タイルマップを描画
     await this.loadMap();
 
-    // 自分のプレイヤーを青い●で表示
-    this.player = new Graphics();
-    this.player.circle(0, 0, 16).fill(0x6366f1);
+    // 自分のプレイヤー表示
+    this.playerBaseTexture = await Assets.load('/assets/character/ghost.png');
+
+    const texture = this.getPlayerTexture('down', 0);
+
+    this.player = new Sprite(texture);
+    this.player.anchor.set(0.5);
     this.player.x = this.x;
     this.player.y = this.y;
+    this.player.width = this.tileScaled;
+    this.player.height = this.tileScaled;
     this.app.stage.addChild(this.player);
 
     // 自分の名前ラベルを表示
@@ -179,6 +198,31 @@ export class GameComponent implements OnInit, OnDestroy {
     // 初期カメラ位置をプレイヤーが画面中央になるように設定
     this.app.stage.x = this.app.screen.width / 2 - this.x;
     this.app.stage.y = this.app.screen.height / 2 - this.y;
+  }
+
+  //キャラクタースプライトシートを区切って出力
+  private getPlayerTexture(
+    direction: 'down' | 'left' | 'right' | 'up',
+    frameIndex: number
+    ): Texture {
+    const directionRows = {
+      down: 0,
+      left: 1,
+      right: 2,
+      up: 3,
+    } as const;
+
+    const row = directionRows[direction];
+
+    return new Texture({
+      source: this.playerBaseTexture.source,
+      frame: new Rectangle(
+        frameIndex * this.playerFrameWidth,
+        row * this.playerFrameHeight,
+        this.playerFrameWidth,
+        this.playerFrameHeight
+      )
+    })
   }
 
   private async loadMap() {
@@ -342,12 +386,20 @@ export class GameComponent implements OnInit, OnDestroy {
 
   // 移動先に当たり判定があるか確認
   private canMove(nextX: number, nextY: number): boolean {
-    const tileScaled = this.tileSize * this.scale; // 64px
-    const tileX = Math.floor(nextX / tileScaled);
-    const tileY = Math.floor(nextY / tileScaled);
-    // タイルのインデックスを計算（横方向のタイル数を掛けて行を特定）
-    const index = tileY * this.mapCols + tileX;
-    return !this.collisionTiles.has(index);
+
+    const points = [
+      [nextX - this.hitCharacter, nextY - this.hitCharacter],
+      [nextX + this.hitCharacter, nextY - this.hitCharacter],
+      [nextX - this.hitCharacter, nextY + this.hitCharacter],
+      [nextX + this.hitCharacter, nextY + this.hitCharacter],
+    ];
+
+    return points.every(([px,py]) => {
+      const tileX = Math.floor(px / this.tileScaled);
+      const tileY = Math.floor(py / this.tileScaled);
+      const index = tileY * this.mapCols + tileX;
+      return !this.collisionTiles.has(index);
+    })
   }
 
   // 毎フレーム実行される処理
@@ -359,15 +411,19 @@ export class GameComponent implements OnInit, OnDestroy {
     // 押されているキーに応じて次の座標を計算
     if (this.keys['ArrowLeft']) {
       nextX -= this.speed;
+      this.playerDirection = 'left';
     }
     if (this.keys['ArrowRight']) {
       nextX += this.speed;
+      this.playerDirection = 'right';
     }
     if (this.keys['ArrowUp']) {
       nextY -= this.speed;
+      this.playerDirection = 'up';
     }
     if (this.keys['ArrowDown']) {
       nextY += this.speed;
+      this.playerDirection = 'down';
     }
 
     // 移動範囲の境界チェック（タイル1枚分の余白を持たせる）
@@ -394,7 +450,27 @@ export class GameComponent implements OnInit, OnDestroy {
 
     // 移動した時だけサーバーに送信（毎フレーム送ると通信量が増えるため）
     if (moved) {
+      this.animationCounter++;
+
+      if (this.animationCounter >= this.animationSpeed) {
+        this.animationCounter = 0;
+        this.playerFrame = (this.playerFrame + 1) % this.walkFrameCount;
+      }
+
+      this.player.texture = this.getPlayerTexture(
+        this.playerDirection,
+        this.playerFrame
+      );
+
       this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y } }));
+    } else {
+      this.playerFrame = 0;
+      this.animationCounter = 0;
+
+      this.player.texture = this.getPlayerTexture(
+        this.playerDirection,
+        this.playerFrame
+      );
     }
 
     // 店舗ゾーン判定
