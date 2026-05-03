@@ -86,6 +86,7 @@ export const purchases = sqliteTable("purchases", {
   product_id: text("product_id")
     .notNull()
     .references(() => products.id),
+  session_id: text("session_id").notNull(),
   purchased_at: integer("purchased_at")
     .notNull()
     .$defaultFn(() => Math.floor(Date.now() / 1000)),

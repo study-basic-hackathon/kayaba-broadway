@@ -11,6 +11,7 @@ import products from "./routes/products";
 import shops from "./routes/shops";
 import users from "./routes/users";
 import purchase from "./routes/purchase";
+import debug from "./routes/debug";
 import { type AppType } from "./types";
 
 const app = new Hono<AppType>();
@@ -43,7 +44,7 @@ const factory = createFactory<{ Bindings: Env }>();
 app.use(
   "/*",
   factory.createMiddleware(async (c, next) => {
-    if (c.req.path.startsWith("/auth/")) {
+    if (c.req.path.startsWith("/auth/") || c.req.path.startsWith("/debug/")) {
       return next();
     }
 
@@ -62,5 +63,5 @@ app.route("/products", products);
 app.route("/fields", fields);
 app.route("/payment", payment);
 app.route("/purchase", purchase);
-
+app.route("/debug", debug);
 export default app;

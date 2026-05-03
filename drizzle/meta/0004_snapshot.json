@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "12cdaffe-5ddf-4ec9-a2ee-573008891c62",
-  "prevId": "36171b3a-d91e-4087-acd7-27562df8584f",
+  "id": "dc3d566e-140a-4b46-97e8-39fd48584e24",
+  "prevId": "12cdaffe-5ddf-4ec9-a2ee-573008891c62",
   "tables": {
     "fields": {
       "name": "fields",
@@ -162,6 +162,13 @@
         },
         "product_id": {
           "name": "product_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "session_id": {
+          "name": "session_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,

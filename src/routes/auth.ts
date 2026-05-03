@@ -226,7 +226,9 @@ router.post("/refresh", async (c) => {
       .get();
 
     if (!storedUser) {
-      await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken));
+      await db
+        .delete(refreshTokens)
+        .where(eq(refreshTokens.token, refreshToken));
       return c.json({ error: "ユーザーが存在しません" }, 401);
     }
 
@@ -245,7 +247,6 @@ router.post("/refresh", async (c) => {
 
     return c.json({ accessToken, user });
   } catch (error) {
-    console.log(error);
     return c.json({ error: "無効なトークン" }, 401);
   }
 });

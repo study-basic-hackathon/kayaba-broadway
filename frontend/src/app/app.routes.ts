@@ -6,6 +6,7 @@ import { FieldsComponent } from './pages/fields/fields.component';
 import { GameComponent } from './pages/game/game.component';
 import { PaymentComponent } from './pages/payment/payment.component';
 import { authGuard } from './guards/auth.guard';
+import { PurchaseSuccessComponent } from './pages/purchase-success/purchase-success.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -19,6 +20,10 @@ export const routes: Routes = [
       { path: 'fields', component: FieldsComponent },
       { path: 'game/:fieldId', component: GameComponent },
       { path: 'payment', component: PaymentComponent },
+      {
+        path: 'payment/success',
+        component: PurchaseSuccessComponent,
+      },
     ],
   },
 ];

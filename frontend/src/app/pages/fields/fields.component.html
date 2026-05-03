@@ -42,14 +42,18 @@
       </div>
     </div>
 
-    <button
-      class="sidebar-btn"
-      [class.active]="activeNav() === 'purchase'"
-      (click)="activeNav.set('purchase'); purchase()"
-    >
-      <span class="icon">⭐</span>
-      <span>お試し購入</span>
-    </button>
+    <div class="purchase-menu-wrapper">
+      <button
+        class="sidebar-btn"
+        [class.active]="activeNav() === 'purchase'"
+        (click)="activeNav.set('purchase'); togglePurchaseMenu()"
+      >
+        <span class="icon">⭐</span>
+        <span>お試し購入</span>
+      </button>
+
+      <app-purchase-menu *ngIf="isPurchaseMenuOpen()" (closed)="togglePurchaseMenu()" />
+    </div>
   </aside>
 
   <main class="main">

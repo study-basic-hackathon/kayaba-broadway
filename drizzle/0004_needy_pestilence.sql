@@ -1,0 +1,1 @@
+ALTER TABLE `purchases` ADD `session_id` text NOT NULL;

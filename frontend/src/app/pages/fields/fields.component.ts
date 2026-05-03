@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { PurchaseMenuComponent } from '../purchase-menu/purchase-menu.component';
 
 interface Field {
   id: string;
@@ -21,7 +22,7 @@ interface FieldsResponse {
 @Component({
   selector: 'app-fields',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, PurchaseMenuComponent],
   templateUrl: './fields.component.html',
   styleUrl: './fields.component.scss',
 })
@@ -38,6 +39,12 @@ export class FieldsComponent implements OnInit {
 
   toggleMenu() {
     this.isMenuOpen.update((v) => !v);
+  }
+
+  isPurchaseMenuOpen = signal(false);
+
+  togglePurchaseMenu() {
+    this.isPurchaseMenuOpen.update((v) => !v);
   }
 
   @HostListener('document:click', ['$event'])
@@ -60,33 +67,8 @@ export class FieldsComponent implements OnInit {
     this.router.navigate(['/game', id]);
   }
 
-  // onClick(id: string) {
-  //   this.router.navigate(['/field'], { queryParams: { id } });
-  // }
-
   logout() {
     this.auth.logout();
     this.router.navigate(['/login'], { replaceUrl: true });
-  }
-
-  async purchase() {
-    const key = 'sample-vol1.pdf';
-
-    this.http
-      .get(`http://localhost:8787/purchase/download/${key}`, {
-        responseType: 'blob',
-      })
-      .subscribe({
-        next: (blob) => {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = key;
-          a.click();
-
-          URL.revokeObjectURL(url);
-        },
-        error: () => alert('ダウンロードに失敗しました'),
-      });
   }
 }

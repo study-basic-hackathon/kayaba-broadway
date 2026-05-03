@@ -3,10 +3,10 @@ import { type AppType } from "../types";
 
 const router = new Hono<AppType>();
 
-router.get("/download/:key", async (c) => {
-  const key = c.req.param("key");
+router.get("/download/*", async (c) => {
+  const key = c.req.path.replace("/purchase/download/", "");
 
-  const object = await c.env.BUCKET?.get(`products/${key}`);
+  const object = await c.env.BUCKET?.get(key);
 
   if (!object) {
     return c.json({ error: "ファイルが見つかりません" }, 404);
