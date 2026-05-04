@@ -350,9 +350,11 @@ export class GameComponent implements OnInit, OnDestroy {
     book.cursor = 'pointer';
 
     book.on('pointertap', () => {
-      this.isOshinagakiModalOpen = true;
-      this.cdr.detectChanges();
-    });
+
+  if (!this.currentShop()) return;
+    this.isOshinagakiModalOpen = true;
+    this.cdr.detectChanges();
+  });
 
     this.app.stage.addChild(book);
   }
