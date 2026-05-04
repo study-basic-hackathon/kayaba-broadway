@@ -14,6 +14,7 @@ import { DatePipe } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { ShopChatService } from '../../services/shop-chat.service';
 import { environment } from '../../../environments/environment';
+import { ChangeDetectorRef } from '@angular/core';
 
 interface Shop {
   id: string;
@@ -60,7 +61,9 @@ export class GameComponent implements OnInit, OnDestroy {
   private shops: Shop[] = [];
   currentShop = signal<Shop | null>(null);
 
-  constructor() {
+  isOshinagakiModalOpen = false;
+
+  constructor(private cdr: ChangeDetectorRef) {
     // currentShop が変化したら shop チャットの接続・切断を制御する
     effect(() => {
       const shop = this.currentShop();
@@ -295,7 +298,65 @@ export class GameComponent implements OnInit, OnDestroy {
 
         this.app.stage.addChild(sprite);
       });
+
+      if (layer.name === 'object') {
+        layer.data.forEach((tileId: number, index: number) => {
+          if (tileId === 0) return;
+          const tileScaled = this.tileSize * this.scale;
+          const tileX = index % layer.width;
+          const tileY = Math.floor(index / layer.width);
+          const x = tileX * tileScaled;
+          const y = tileY * tileScaled;
+          this.createBookIcon(x, y, tileTexture, tileWidth, tileHeight);
+        });
+      }
     });
+  }
+
+  private createBookIcon(
+    x: number,
+    y: number,
+    tileTexture: Texture,
+    tileWidth: number,
+    tileHeight: number
+  ) {
+    const spacing = 1;
+    const columns = 57;
+
+    // 本アイコンのtileIdを指定する
+    const bookTileId = 906;
+    const tileIndex = bookTileId - 1;
+
+    const srcX = (tileIndex % columns) * (tileWidth + spacing);
+    const srcY = Math.floor(tileIndex / columns) * (tileHeight + spacing);
+
+    const texture = new Texture({
+      source: tileTexture.source,
+      frame: new Rectangle(srcX, srcY, tileWidth, tileHeight),
+    });
+
+    const book = new Sprite(texture);
+
+    // 机の中心に本を乗せる
+    const tileScaled = this.tileSize * this.scale;
+
+    book.x = x + tileScaled / 2;
+    book.y = y + tileScaled / 2;
+
+    book.anchor.set(0.5);
+    book.scale.set(this.scale);
+
+    book.eventMode = 'static';
+    book.cursor = 'pointer';
+
+    book.on('pointertap', () => {
+
+  if (!this.currentShop()) return;
+    this.isOshinagakiModalOpen = true;
+    this.cdr.detectChanges();
+  });
+
+    this.app.stage.addChild(book);
   }
 
   private readonly handleKeydown = (e: KeyboardEvent) => {
