@@ -87,7 +87,7 @@ export class GameComponent implements OnInit, OnDestroy {
 
   menuItems: Product[] = [
     {
-      id: '1',
+      id: 'c3d4e5f6-0001-0000-0000-000000000001',
       shop_id: '',
       file_url: './assets/items/01.png',
       name: 'コーヒー選曲',
@@ -97,7 +97,7 @@ export class GameComponent implements OnInit, OnDestroy {
       created_at: 0,
     },
     {
-      id: '2',
+      id: 'c3d4e5f6-0001-0000-0000-000000000002',
       shop_id: '',
       file_url: './assets/items/02.png',
       name: 'ショートケーキ選曲',

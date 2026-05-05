@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { PurchaseMenuComponent } from '../purchase-menu/purchase-menu.component';
 
 interface Field {
   id: string;
@@ -22,7 +21,7 @@ interface FieldsResponse {
 @Component({
   selector: 'app-fields',
   standalone: true,
-  imports: [CommonModule, PurchaseMenuComponent],
+  imports: [CommonModule],
   templateUrl: './fields.component.html',
   styleUrl: './fields.component.scss',
 })

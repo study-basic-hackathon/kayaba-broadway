@@ -86,12 +86,12 @@ export const purchases = sqliteTable("purchases", {
   product_id: text("product_id")
     .notNull()
     .references(() => products.id),
-  session_id: text("session_id").notNull(),
+  payment_intent_id: text("payment_intent_id").notNull(),
   purchased_at: integer("purchased_at")
     .notNull()
     .$defaultFn(() => Math.floor(Date.now() / 1000)),
   payment_status: text("payment_status", {
-    enum: ["mock", "completed", "failed"],
+    enum: ["mock", "completed", "failed", "pending"],
   })
     .notNull()
     .default("mock"),

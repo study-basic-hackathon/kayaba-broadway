@@ -1,7 +1,7 @@
 import { Component, ElementRef, inject, input, output, signal, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { loadStripe, Stripe, StripeElements } from '@stripe/stripe-js';
-
+import { environment } from '../../../environments/environment';
 interface Product {
   id: string;
   name: string;
@@ -34,9 +34,7 @@ export class OshinagakiModalComponent {
   buy = output<string>();
 
   async ngOnInit() {
-    this.stripe = await loadStripe(
-      'pk_test_51TR8Yd1lp8GZIfDzFSJrRBkJZJMpPDP1n333ba4BYUdcJ61e3IszQbtEbSv5bqwX1RH4g2KXUS0NjnBmfydwWAkF00SyIUjiMA',
-    );
+    this.stripe = await loadStripe(environment.stripePublicKey);
   }
 
   onClose(): void {
@@ -68,7 +66,7 @@ export class OshinagakiModalComponent {
     }
   }
 
-  onBuy(id: string) {
+  onBuy(productId: string) {
     this.isPaymentStep.set(true);
     this.isPaymentLoading.set(true);
 
@@ -76,7 +74,7 @@ export class OshinagakiModalComponent {
       .post<{
         clientSecret: string;
         customerSessionClientSecret: string;
-      }>('http://localhost:8787/payment/create-payment-intent', { amount: 500 })
+      }>('http://localhost:8787/payment/create-payment-intent', { product_id: productId })
       .subscribe({
         next: async ({ clientSecret, customerSessionClientSecret }) => {
           if (!this.stripe) return;

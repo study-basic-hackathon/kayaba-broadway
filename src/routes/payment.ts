@@ -1,12 +1,15 @@
 import { zValidator } from "@hono/zod-validator";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { z } from "zod";
+import { products, purchases } from "../db/schema";
 import { type AppType } from "../types";
 
 const router = new Hono<AppType>();
 
 const ItemSchema = z.object({
-  amount: z.number().int().positive(),
+  product_id: z.string(),
 });
 
 router.post(
@@ -14,9 +17,18 @@ router.post(
   zValidator("json", ItemSchema),
   async (c) => {
     const payload = c.get("jwtPayload");
+    const db = drizzle(c.env.DB!);
     const stripe = c.get("stripe");
 
-    const { amount } = c.req.valid("json");
+    const { product_id } = c.req.valid("json");
+
+    const product = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, product_id))
+      .get();
+
+    if (!product) return c.json({ error: "商品が見つかりません" }, 404);
 
     const customers = await stripe.customers.list({
       email: payload.email,
@@ -28,7 +40,7 @@ router.post(
         : await stripe.customers.create({ email: payload.email });
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount,
+      amount: product.price,
       currency: "jpy",
       customer: customer.id,
       setup_future_usage: "off_session",
@@ -46,6 +58,13 @@ router.post(
           },
         },
       },
+    });
+
+    await db.insert(purchases).values({
+      user_id: payload.id,
+      product_id,
+      payment_intent_id: paymentIntent.id,
+      payment_status: "pending",
     });
 
     return c.json({
