@@ -4,7 +4,6 @@ import { LoginComponent } from './pages/login/login.component';
 import { FieldComponent } from './pages/field/field.component';
 import { FieldsComponent } from './pages/fields/fields.component';
 import { GameComponent } from './pages/game/game.component';
-import { PaymentComponent } from './pages/payment/payment.component';
 import { authGuard } from './guards/auth.guard';
 import { PurchaseSuccessComponent } from './pages/purchase-success/purchase-success.component';
 
@@ -19,7 +18,6 @@ export const routes: Routes = [
       { path: 'field', component: FieldComponent },
       { path: 'fields', component: FieldsComponent },
       { path: 'game/:fieldId', component: GameComponent },
-      { path: 'payment', component: PaymentComponent },
       {
         path: 'payment/success',
         component: PurchaseSuccessComponent,
