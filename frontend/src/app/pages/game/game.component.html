@@ -7,7 +7,11 @@
       <div class="chat-panel">
         <div class="chat-messages" #chatMessages>
           @for (msg of shopChatService.messages(); track msg.timestamp) {
-            <div class="chat-row" [class.own]="msg.userId === currentUserId" [class.other]="msg.userId !== currentUserId">
+            <div
+              class="chat-row"
+              [class.own]="msg.userId === currentUserId"
+              [class.other]="msg.userId !== currentUserId"
+            >
               @if (msg.userId !== currentUserId) {
                 <div class="chat-meta">
                   <span class="chat-user other">{{ msg.displayName }}</span>
@@ -15,11 +19,11 @@
               }
               <div class="chat-bubble-row">
                 @if (msg.userId === currentUserId) {
-                  <span class="chat-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+                  <span class="chat-time">{{ msg.timestamp | date: 'HH:mm' }}</span>
                 }
                 <div class="chat-bubble">{{ msg.text }}</div>
                 @if (msg.userId !== currentUserId) {
-                  <span class="chat-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+                  <span class="chat-time">{{ msg.timestamp | date: 'HH:mm' }}</span>
                 }
               </div>
             </div>
@@ -39,40 +43,8 @@
       </div>
     </div>
   }
+
   @if (isOshinagakiModalOpen) {
-    <div class="modal-backdrop" (click)="isOshinagakiModalOpen = false">
-      <div class="menu-modal" (click)="$event.stopPropagation()">
-        <div class="menu-header">
-          <h2>お品書き</h2>
-          <button class="close-button" (click)="isOshinagakiModalOpen = false">×</button>
-        </div>
-
-        <div class="menu-list">
-          <div class="menu-item">
-            <img src="./assets/items/01.png" alt="コーヒー選曲" />
-            <div class="menu-info">
-              <h3>コーヒー選曲</h3>
-              <p>苦々しい雰囲気の大人なBGMを詰め込んでいます。</p>
-              <div class="menu-footer">
-                <span class="price">300円</span>
-                <button class="buy-button">購入</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="menu-item">
-            <img src="./assets/items/02.png" alt="ショートケーキ選曲" />
-            <div class="menu-info">
-              <h3>ショートケーキ選曲</h3>
-              <p>甘い雰囲気のポップなBGMを詰め込んでいます。</p>
-              <div class="menu-footer">
-                <span class="price">500円</span>
-                <button class="buy-button">購入</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <app-oshinagaki-modal [menuItems]="menuItems" (close)="isOshinagakiModalOpen = false" />
   }
 </div>

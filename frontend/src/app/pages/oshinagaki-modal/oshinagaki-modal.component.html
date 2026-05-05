@@ -1,0 +1,49 @@
+<div class="modal-backdrop" (click)="onClose()">
+  <div class="menu-modal" (click)="$event.stopPropagation()">
+    @if (!isPaymentStep()) {
+      <!-- お品書き画面 -->
+      <div class="menu-header">
+        <h2>お品書き</h2>
+        <button class="close-button" (click)="onClose()">×</button>
+      </div>
+      <div class="menu-list">
+        @for (item of menuItems(); track item.id) {
+          <div class="menu-item">
+            <img [src]="item.file_url" [alt]="item.name" />
+            <div class="menu-info">
+              <h3>{{ item.name }}</h3>
+              <p>{{ item.description }}</p>
+              <div class="menu-footer">
+                <span class="price">{{ item.price }}円</span>
+                <button class="buy-button" (click)="onBuy(item.id)">購入</button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- 支払い画面 -->
+      <div class="dialog-header">
+        <p class="dialog-title">💳 お支払い</p>
+        <button class="close-button" (click)="onBack()">×</button>
+      </div>
+      <div class="dialog-body">
+        @if (isPaymentLoading()) {
+          <div>読み込み中...</div>
+        } @else if (isComplete()) {
+          <div>購入完了！</div>
+        } @else {
+          <div #paymentElement></div>
+          @if (paymentError()) {
+            <p class="payment-error">{{ paymentError() }}</p>
+          }
+        }
+      </div>
+      @if (!isPaymentLoading() && !isComplete()) {
+        <div class="dialog-footer">
+          <button class="btn-purchase" (click)="onSubmit()">支払う</button>
+        </div>
+      }
+    }
+  </div>
+</div>

@@ -1,20 +1,25 @@
-import { Component, OnInit, OnDestroy, ElementRef, ViewChild, NgZone, signal, effect, inject } from '@angular/core';
-import {
-  Application,
-  Text as PixiText,
-  Assets,
-  Texture,
-  Rectangle,
-  Sprite,
-} from 'pixi.js';
-import PartySocket from 'partysocket';
-import { ActivatedRoute } from '@angular/router';
-import { FormsModule, } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import {
+  ChangeDetectorRef,
+  Component,
+  effect,
+  ElementRef,
+  inject,
+  NgZone,
+  OnDestroy,
+  OnInit,
+  signal,
+  ViewChild,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import PartySocket from 'partysocket';
+import { Application, Assets, Text as PixiText, Rectangle, Sprite, Texture } from 'pixi.js';
+import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
 import { ShopChatService } from '../../services/shop-chat.service';
-import { environment } from '../../../environments/environment';
-import { ChangeDetectorRef } from '@angular/core';
+import { OshinagakiModalComponent } from '../oshinagaki-modal/oshinagaki-modal.component';
 
 interface Shop {
   id: string;
@@ -35,16 +40,32 @@ interface OtherPlayer {
   animationCounter: number;
 }
 
+interface Product {
+  id: string;
+  shop_id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  file_url: string;
+  thumbnail_url: string;
+  created_at: number;
+}
+
+interface ProductsResponse {
+  products: Product[];
+}
+
 @Component({
   selector: 'app-game',
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, OshinagakiModalComponent],
   templateUrl: './game.component.html',
   styleUrl: './game.component.scss',
 })
 export class GameComponent implements OnInit, OnDestroy {
   @ViewChild('gameContainer', { static: true }) gameContainer!: ElementRef;
   @ViewChild('chatMessages') chatMessagesEl?: ElementRef<HTMLDivElement>;
+  @ViewChild('paymentElement') paymentElementRef!: ElementRef;
 
   private app!: Application;
   private player!: Sprite;
@@ -53,6 +74,7 @@ export class GameComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private auth = inject(AuthService);
   private ngZone = inject(NgZone);
+  private http = inject(HttpClient);
   shopChatService = inject(ShopChatService);
 
   chatInputText = '';
@@ -62,6 +84,29 @@ export class GameComponent implements OnInit, OnDestroy {
   currentShop = signal<Shop | null>(null);
 
   isOshinagakiModalOpen = false;
+
+  menuItems: Product[] = [
+    {
+      id: '1',
+      shop_id: '',
+      file_url: './assets/items/01.png',
+      name: 'コーヒー選曲',
+      description: '苦々しい雰囲気の大人なBGMを詰め込んでいます。',
+      price: 300,
+      thumbnail_url: '',
+      created_at: 0,
+    },
+    {
+      id: '2',
+      shop_id: '',
+      file_url: './assets/items/02.png',
+      name: 'ショートケーキ選曲',
+      description: '甘い雰囲気のポップなBGMを詰め込んでいます。',
+      price: 500,
+      thumbnail_url: '',
+      created_at: 0,
+    },
+  ];
 
   constructor(private cdr: ChangeDetectorRef) {
     // currentShop が変化したら shop チャットの接続・切断を制御する
@@ -86,6 +131,10 @@ export class GameComponent implements OnInit, OnDestroy {
       });
     });
   }
+
+  products = signal<Product[]>([]);
+  isLoading = signal(true);
+  error = signal<string | null>(null);
 
   sendChatMessage() {
     const text = this.chatInputText.trim();
@@ -150,6 +199,17 @@ export class GameComponent implements OnInit, OnDestroy {
     this.app.ticker.add(() => this.update());
     // 店舗情報は非同期で取得（失敗しても移動には影響しない）
     this.loadShops(fieldId);
+    const shopId = 'a1b2c3d4-0001-0000-0000-000000000001';
+    this.http.get<ProductsResponse>(`http://localhost:8787/shops/${shopId}/products`).subscribe({
+      next: (data) => {
+        this.products.set([data.products[0]]);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.error.set('商品の取得に失敗しました');
+        this.isLoading.set(false);
+      },
+    });
   }
 
   private async loadShops(fieldId: string) {
@@ -158,7 +218,7 @@ export class GameComponent implements OnInit, OnDestroy {
       const res = await fetch(`${environment.apiBaseUrl}/fields/${fieldId}/shops`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json() as { shops: Shop[] };
+      const data = (await res.json()) as { shops: Shop[] };
       this.shops = data.shops;
     } catch (e) {
       console.error('店舗情報の取得に失敗しました', e);
@@ -208,8 +268,8 @@ export class GameComponent implements OnInit, OnDestroy {
   //キャラクタースプライトシートを区切って出力
   private getPlayerTexture(
     direction: 'down' | 'left' | 'right' | 'up',
-    frameIndex: number
-    ): Texture {
+    frameIndex: number,
+  ): Texture {
     const directionRows = {
       down: 0,
       left: 1,
@@ -225,9 +285,9 @@ export class GameComponent implements OnInit, OnDestroy {
         frameIndex * this.playerFrameWidth,
         row * this.playerFrameHeight,
         this.playerFrameWidth,
-        this.playerFrameHeight
-      )
-    })
+        this.playerFrameHeight,
+      ),
+    });
   }
 
   private async loadMap() {
@@ -318,7 +378,7 @@ export class GameComponent implements OnInit, OnDestroy {
     y: number,
     tileTexture: Texture,
     tileWidth: number,
-    tileHeight: number
+    tileHeight: number,
   ) {
     const spacing = 1;
     const columns = 57;
@@ -350,11 +410,10 @@ export class GameComponent implements OnInit, OnDestroy {
     book.cursor = 'pointer';
 
     book.on('pointertap', () => {
-
-  if (!this.currentShop()) return;
-    this.isOshinagakiModalOpen = true;
-    this.cdr.detectChanges();
-  });
+      if (!this.currentShop()) return;
+      this.isOshinagakiModalOpen = true;
+      this.cdr.detectChanges();
+    });
 
     this.app.stage.addChild(book);
   }
@@ -466,12 +525,19 @@ export class GameComponent implements OnInit, OnDestroy {
 
     this.app.stage.addChild(graphics);
     this.app.stage.addChild(label);
-    this.otherPlayers.set(id, { id, displayName, graphics, label, direction: 'down', frame: 0, animationCounter: 0 });
+    this.otherPlayers.set(id, {
+      id,
+      displayName,
+      graphics,
+      label,
+      direction: 'down',
+      frame: 0,
+      animationCounter: 0,
+    });
   }
 
   // 移動先に当たり判定があるか確認
   private canMove(nextX: number, nextY: number): boolean {
-
     const points = [
       [nextX - this.hitCharacter, nextY - this.hitCharacter],
       [nextX + this.hitCharacter, nextY - this.hitCharacter],
@@ -479,12 +545,12 @@ export class GameComponent implements OnInit, OnDestroy {
       [nextX + this.hitCharacter, nextY + this.hitCharacter],
     ];
 
-    return points.every(([px,py]) => {
+    return points.every(([px, py]) => {
       const tileX = Math.floor(px / this.tileScaled);
       const tileY = Math.floor(py / this.tileScaled);
       const index = tileY * this.mapCols + tileX;
       return !this.collisionTiles.has(index);
-    })
+    });
   }
 
   // 毎フレーム実行される処理
@@ -542,32 +608,32 @@ export class GameComponent implements OnInit, OnDestroy {
         this.playerFrame = (this.playerFrame + 1) % this.walkFrameCount;
       }
 
-      this.player.texture = this.getPlayerTexture(
-        this.playerDirection,
-        this.playerFrame
-      );
+      this.player.texture = this.getPlayerTexture(this.playerDirection, this.playerFrame);
 
       this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y } }));
     } else {
       this.playerFrame = 0;
       this.animationCounter = 0;
 
-      this.player.texture = this.getPlayerTexture(
-        this.playerDirection,
-        this.playerFrame
-      );
+      this.player.texture = this.getPlayerTexture(this.playerDirection, this.playerFrame);
     }
 
     // 店舗ゾーン判定
     const tileScaledSize = this.tileSize * this.scale;
     const tileX = Math.floor(this.x / tileScaledSize);
     const tileY = Math.floor(this.y / tileScaledSize);
-    const shop = this.shops.find(s =>
-      s.zone_col !== null && s.zone_row !== null &&
-      s.zone_width !== null && s.zone_height !== null &&
-      tileX >= s.zone_col && tileX < s.zone_col + s.zone_width &&
-      tileY >= s.zone_row && tileY < s.zone_row + s.zone_height
-    ) ?? null;
+    const shop =
+      this.shops.find(
+        (s) =>
+          s.zone_col !== null &&
+          s.zone_row !== null &&
+          s.zone_width !== null &&
+          s.zone_height !== null &&
+          tileX >= s.zone_col &&
+          tileX < s.zone_col + s.zone_width &&
+          tileY >= s.zone_row &&
+          tileY < s.zone_row + s.zone_height,
+      ) ?? null;
 
     // 現在いる店舗が変化したときのみ更新（Angularの変更検知をトリガーするためNgZone内で実行）
     if (shop?.id !== this.currentShop()?.id) {

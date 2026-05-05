@@ -1,0 +1,23 @@
+<div class="dialog-header">
+  <p class="dialog-title">💳 お支払い</p>
+  <button class="dialog-close" (click)="onBack()">✕</button>
+</div>
+
+<div class="dialog-body">
+  @if (isPaymentLoading()) {
+    <div>読み込み中...</div>
+  } @else if (isComplete()) {
+    <div>購入完了！</div>
+  } @else {
+    <div #paymentElement></div>
+    @if (paymentError()) {
+      <p>{{ paymentError() }}</p>
+    }
+  }
+</div>
+
+@if (!isPaymentLoading() && !isComplete()) {
+  <div class="dialog-footer">
+    <button class="btn-purchase" (click)="onSubmit()">支払う</button>
+  </div>
+}
