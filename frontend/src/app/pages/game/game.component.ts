@@ -307,7 +307,7 @@ export class GameComponent implements OnInit, OnDestroy {
     this.app.stage.addChild(this.player);
 
     // 自分の名前ラベルを表示
-    const displayName = this.auth.user()?.display_name ?? '';
+    const displayName = this.auth.user()?.display_name ?? this.auth.getUserFromToken()?.display_name ?? '';
     this.playerLabel = new PixiText({
       text: displayName,
       style: { fontSize: 12, fill: 0xffffff },

@@ -84,19 +84,28 @@ export class AuthService {
   }
 
   /**
-   * localStorage のアクセストークンから userId (sub クレーム) を取り出す。
-   * auth.user() が null（リフレッシュ失敗時など）のフォールバック用。
+   * localStorage のアクセストークンのペイロードをデコードして返す。
+   * auth.user() が null（Safari ITP によるリフレッシュ失敗時など）のフォールバック用。
    */
-  getUserIdFromToken(): string | undefined {
+  getUserFromToken(): Pick<User, 'id' | 'display_name' | 'email'> | undefined {
     const token = this.getAccessToken();
     if (!token) return undefined;
     try {
       const payload = token.split('.')[1];
       const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
-      return decoded.sub as string | undefined;
+      if (!decoded.id) return undefined;
+      return {
+        id: decoded.id as string,
+        email: decoded.email as string ?? '',
+        display_name: decoded.display_name as string ?? '',
+      };
     } catch {
       return undefined;
     }
+  }
+
+  getUserIdFromToken(): string | undefined {
+    return this.getUserFromToken()?.id;
   }
 
   refresh() {
