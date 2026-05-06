@@ -146,7 +146,9 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   get currentUserId(): string | undefined {
-    return this.auth.user()?.id;
+    // auth.user() が null の場合（Safari ITP によるリフレッシュ失敗時など）は
+    // localStorage のアクセストークンから userId を取り出してフォールバック
+    return this.auth.user()?.id ?? this.auth.getUserIdFromToken();
   }
 
   // 現在押されているキーを管理するオブジェクト

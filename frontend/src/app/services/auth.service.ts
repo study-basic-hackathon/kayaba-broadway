@@ -83,6 +83,22 @@ export class AuthService {
     this.currentUser.set(user);
   }
 
+  /**
+   * localStorage のアクセストークンから userId (sub クレーム) を取り出す。
+   * auth.user() が null（リフレッシュ失敗時など）のフォールバック用。
+   */
+  getUserIdFromToken(): string | undefined {
+    const token = this.getAccessToken();
+    if (!token) return undefined;
+    try {
+      const payload = token.split('.')[1];
+      const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+      return decoded.sub as string | undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   refresh() {
     return this.http.post<AuthResponse>(
       `${environment.apiBaseUrl}/auth/refresh`,
