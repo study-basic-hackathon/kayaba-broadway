@@ -84,10 +84,11 @@ router.post("/register", zValidator("json", registerSchema), async (c) => {
     expires_at: refreshTokenExpiresAt,
   });
 
+  const isProduction = c.env.ENVIRONMENT === "production";
   setCookie(c, "refreshToken", refreshToken, {
     httpOnly: true,
-    secure: c.env.ENVIRONMENT === "production",
-    sameSite: "Strict",
+    secure: isProduction,
+    sameSite: isProduction ? "None" : "Lax",
     maxAge: REFRESH_TOKEN_EXPIRES_IN,
   });
 
@@ -173,10 +174,11 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
     expires_at: refreshTokenExpiresAt,
   });
 
+  const isProductionLogin = c.env.ENVIRONMENT === "production";
   setCookie(c, "refreshToken", refreshToken, {
     httpOnly: true,
-    secure: c.env.ENVIRONMENT === "production",
-    sameSite: "Strict",
+    secure: isProductionLogin,
+    sameSite: isProductionLogin ? "None" : "Lax",
     maxAge: REFRESH_TOKEN_EXPIRES_IN,
   });
 
@@ -259,10 +261,11 @@ router.post("/logout", async (c) => {
     await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken));
   }
 
+  const isProductionLogout = c.env.ENVIRONMENT === "production";
   setCookie(c, "refreshToken", "", {
     httpOnly: true,
-    secure: c.env.ENVIRONMENT === "production",
-    sameSite: "Strict",
+    secure: isProductionLogout,
+    sameSite: isProductionLogout ? "None" : "Lax",
     maxAge: 0,
   });
 

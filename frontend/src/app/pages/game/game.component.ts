@@ -139,8 +139,10 @@ export class GameComponent implements OnInit, OnDestroy {
   sendChatMessage() {
     const text = this.chatInputText.trim();
     if (!text) return;
-    this.shopChatService.sendMessage(text);
-    this.chatInputText = '';
+    const sent = this.shopChatService.sendMessage(text);
+    if (sent) {
+      this.chatInputText = '';
+    }
   }
 
   get currentUserId(): string | undefined {
@@ -200,7 +202,7 @@ export class GameComponent implements OnInit, OnDestroy {
     // 店舗情報は非同期で取得（失敗しても移動には影響しない）
     this.loadShops(fieldId);
     const shopId = 'a1b2c3d4-0001-0000-0000-000000000001';
-    this.http.get<ProductsResponse>(`http://localhost:8787/shops/${shopId}/products`).subscribe({
+    this.http.get<ProductsResponse>(`${environment.apiBaseUrl}/shops/${shopId}/products`).subscribe({
       next: (data) => {
         this.products.set([data.products[0]]);
         this.isLoading.set(false);
@@ -440,6 +442,11 @@ export class GameComponent implements OnInit, OnDestroy {
       host: environment.partykitHost,
       room: fieldId,
       ...(token ? { query: { token } } : {}),
+    });
+
+    // 接続確立直後に現在位置を送信して他のユーザーに自分の存在を知らせる
+    this.socket.addEventListener('open', () => {
+      this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y } }));
     });
 
     this.socket.onmessage = (event) => {

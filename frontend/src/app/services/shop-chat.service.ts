@@ -28,6 +28,7 @@ export class ShopChatService {
   private ngZone = inject(NgZone);
 
   private socket: PartySocket | null = null;
+  private currentShopId: string | null = null;
 
   private _messages = signal<ChatMessage[]>([]);
   messages = this._messages.asReadonly();
@@ -36,25 +37,29 @@ export class ShopChatService {
   connected = this._connected.asReadonly();
 
   connect(shopId: string, token: string | null): void {
-    // 既存の接続があれば切断してから再接続
     this.disconnect();
 
     if (!token) return;
 
-    this.socket = new PartySocket({
+    this.currentShopId = shopId;
+
+    // PartySocket はデフォルトで自動再接続する。
+    // 再接続時は updateProperties() で最新トークンを渡す。
+    const socket = new PartySocket({
       host: environment.partykitHost,
       room: `shop-${shopId}`,
       query: { token },
     });
+    this.socket = socket;
 
-    this.socket.addEventListener('open', () => {
+    socket.addEventListener('open', () => {
       this.ngZone.run(() => {
         this._connected.set(true);
         this._messages.set([]);
       });
     });
 
-    this.socket.addEventListener('message', (event: MessageEvent) => {
+    socket.addEventListener('message', (event: MessageEvent) => {
       try {
         const msg = JSON.parse(event.data as string) as IncomingMessage;
 
@@ -75,7 +80,7 @@ export class ShopChatService {
       }
     });
 
-    this.socket.addEventListener('close', () => {
+    socket.addEventListener('close', () => {
       this.ngZone.run(() => {
         this._connected.set(false);
       });
@@ -83,6 +88,7 @@ export class ShopChatService {
   }
 
   disconnect(): void {
+    this.currentShopId = null;
     if (this.socket) {
       this.socket.close();
       this.socket = null;
@@ -91,14 +97,9 @@ export class ShopChatService {
     this._messages.set([]);
   }
 
-  sendMessage(text: string): void {
-    if (!this.socket || !this._connected()) return;
-
-    this.socket.send(
-      JSON.stringify({
-        message_type: 'chat',
-        data: { text },
-      }),
-    );
+  sendMessage(text: string): boolean {
+    if (!this.socket || !this._connected()) return false;
+    this.socket.send(JSON.stringify({ message_type: 'chat', data: { text } }));
+    return true;
   }
 }

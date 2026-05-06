@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 interface User {
   id: string;
@@ -35,7 +36,7 @@ export class AuthService {
   async register(display_name: string, email: string, password: string, confirm_password: string) {
     try {
       const obs$ = this.http.post<AuthResponse>(
-        'http://localhost:8787/auth/register',
+        `${environment.apiBaseUrl}/auth/register`,
         { display_name, email, password, confirm_password },
         { withCredentials: true },
       );
@@ -50,7 +51,7 @@ export class AuthService {
   async login(email: string, password: string) {
     try {
       const obs$ = this.http.post<AuthResponse>(
-        'http://localhost:8787/auth/login',
+        `${environment.apiBaseUrl}/auth/login`,
         { email, password },
         { withCredentials: true },
       );
@@ -65,7 +66,7 @@ export class AuthService {
   async logout() {
     try {
       await firstValueFrom(
-        this.http.post('http://localhost:8787/auth/logout', {}, { withCredentials: true }),
+        this.http.post(`${environment.apiBaseUrl}/auth/logout`, {}, { withCredentials: true }),
       );
     } finally {
       localStorage.removeItem('accessToken');
@@ -84,7 +85,7 @@ export class AuthService {
 
   refresh() {
     return this.http.post<AuthResponse>(
-      'http://localhost:8787/auth/refresh',
+      `${environment.apiBaseUrl}/auth/refresh`,
       {},
       { withCredentials: true },
     );
