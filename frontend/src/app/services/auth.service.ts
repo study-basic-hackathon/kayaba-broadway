@@ -92,7 +92,12 @@ export class AuthService {
     if (!token) return undefined;
     try {
       const payload = token.split('.')[1];
-      const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+      // atob() は Latin-1 のみ対応で日本語が文字化けするため
+      // Uint8Array → UTF-8 デコードで正しく変換する
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const binary = atob(base64);
+      const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+      const decoded = JSON.parse(new TextDecoder().decode(bytes));
       if (!decoded.id) return undefined;
       return {
         id: decoded.id as string,
