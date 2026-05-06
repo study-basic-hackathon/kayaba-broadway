@@ -12,18 +12,40 @@
 
 ---
 
-## 再デプロイ手順
+## デプロイは main push で自動実行される
 
-### バックエンド（Cloudflare Workers）
+**通常のデプロイ作業は不要。** `main` ブランチに push するだけで CI/CD が自動的に処理する。
 
-```bash
-npm run deploy
-# = npx wrangler deploy --minify
+```
+git push origin main
 ```
 
-Workers 名は `api`（`wrangler.jsonc` の `name` フィールド）のため、URL は `https://api.kayaba-broadway.workers.dev` になる。
+GitHub Actions（`.github/workflows/deploy.yml`）が起動し、以下の3ジョブが**並列**で実行される。
 
-#### シークレットの更新が必要な場合
+| ジョブ | 内容 |
+|--------|------|
+| `deploy-backend` | テスト（vitest）→ Cloudflare Workers デプロイ |
+| `deploy-partykit` | Partykit（WebSocket サーバー）デプロイ |
+| `deploy-frontend` | Angular ビルド → Cloudflare Pages デプロイ |
+
+> `deploy-backend` はテストが通過しないとデプロイされない（フェイルセーフ）。
+
+### push 前にローカルでテストを確認する
+
+```bash
+# ルートで実行
+npm test
+```
+
+5ファイル・23テストが通過することを確認してから push すること。
+
+---
+
+## 手動操作が必要なケース
+
+> ⚠️ 以下は**通常のコード変更では不要**。シークレット更新・DB マイグレーション・初期セットアップ時のみ実施する。
+
+### シークレットの更新（バックエンド）
 
 ```bash
 # 改行なし（printf 推奨）で渡すこと
@@ -34,7 +56,7 @@ printf '<値>' | npx wrangler secret put STRIPE_WEBHOOK_SECRET --env=""
 
 > **注意**: `echo` は末尾に改行を付けるため、シークレット値がずれる原因になる。必ず `printf` を使うこと。
 
-#### D1 マイグレーションの適用
+### D1 マイグレーションの適用
 
 ```bash
 # 本番DB に適用（--local なし）
@@ -43,16 +65,7 @@ npx wrangler d1 migrations apply kayaba-broadway
 
 > シードデータの再投入は実データと混在するため、原則行わない。
 
----
-
-### Partykit（WebSocket サーバー）
-
-```bash
-cd partykit
-npx partykit deploy
-```
-
-#### JWT_SECRET の更新が必要な場合
+### Partykit の JWT_SECRET 更新
 
 バックエンドと **まったく同じ値** を設定すること。値がずれると `4001 Unauthorized` で全接続が切断される。
 
@@ -62,9 +75,7 @@ printf '<値>' | npx partykit env add JWT_SECRET
 npx partykit deploy
 ```
 
----
-
-### フロントエンド（Cloudflare Pages）
+### フロントエンドの手動デプロイ（緊急時）
 
 ```bash
 cd frontend
@@ -94,6 +105,44 @@ export const environment = {
 
 - `_redirects`: `/* /index.html 200`（SPA ルーティング対応）
 - `_headers`: `/*.html` と `/` に `Cache-Control: no-store`（古いキャッシュによる不具合防止）
+
+---
+
+## CI/CD の詳細
+
+### GitHub Secrets の登録
+
+**Settings → Secrets and variables → Actions** に以下を登録する（初期セットアップ時のみ）。
+
+| Secret 名 | 説明 | 取得方法 |
+|-----------|------|---------|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API トークン | Cloudflare ダッシュボード → My Profile → API Tokens |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare アカウント ID | `5833666f916ca87d1762c18ac1b4b32a` |
+| `JWT_SECRET` | JWT 署名シークレット | バックエンドと Partykit で共通の値 |
+| `PARTYKIT_TOKEN` | Partykit デプロイ用トークン | `npx partykit token generate` で生成 |
+| `PARTYKIT_LOGIN` | Partykit のログイン名 | `yasunariiguchi`（暫定。Partykit の組織アカウントへ移行時は変更が必要） |
+
+> `PARTYKIT_LOGIN` は現在 `yasunariiguchi`（個人アカウント）を暫定利用している。Partykit を組織アカウントへ移行した際は Secret の値を更新すること。
+
+> Stripe 関連の Secret（`STRIPE_API_KEY` 等）は Workers の Secret として `wrangler secret put` で登録済みのため、CI には不要。
+
+### テスト環境の Bindings
+
+CI の vitest は `wrangler.jsonc` ではなく `vitest.config.ts` の `miniflare.bindings` を参照する。Stripe 等の外部サービス値はダミー値を設定している。
+
+```typescript
+// vitest.config.ts（抜粋）
+miniflare: {
+  bindings: {
+    TEST_MIGRATIONS: migrations,
+    JWT_SECRET: process.env.JWT_SECRET ?? "test-jwt-secret-for-vitest",
+    STRIPE_API_KEY: process.env.STRIPE_API_KEY ?? "sk_test_dummy",
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET ?? "whsec_dummy",
+    CORS_ORIGIN: "http://localhost:4200",
+    ENVIRONMENT: "test",
+  },
+},
+```
 
 ---
 
@@ -128,15 +177,3 @@ export const environment = {
    ```bash
    printf '<whsec_...>' | npx wrangler secret put STRIPE_WEBHOOK_SECRET --env=""
    ```
-
----
-
-## 動作確認チェックリスト
-
-- [ ] バックエンド: `GET https://api.kayaba-broadway.workers.dev/` が 200 を返す
-- [ ] ログイン・登録が正常に動作する（Cookie の `SameSite=None; Secure` が効いている）
-- [ ] リロードしても 401 にならない（リフレッシュトークンが正常に送受信されている）
-- [ ] Partykit: フィールド画面でキャラクターの位置同期が動作する（`4001` が出ないこと）
-- [ ] チャット: 店舗ゾーン内でメッセージの送受信が動作する
-- [ ] Stripe: テスト決済が完了し、購入レコードが D1 に記録される
-- [ ] フロントエンド: `/login` や `/game/xxx` を直接 URL 入力・リロードしても 404 にならない
