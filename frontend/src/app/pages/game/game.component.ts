@@ -192,6 +192,12 @@ export class GameComponent implements OnInit, OnDestroy {
   private tileScaled = this.tileSize * this.scale;
   private hitCharacter = (this.tileSize * this.scale) / 2;
 
+  // タッチ操作用：スワイプ開始位置
+  private touchStartX = 0;
+  private touchStartY = 0;
+  // タッチ中の仮想キー入力
+  private touchKeys: Record<string, boolean> = {};
+
   async ngOnInit() {
     await this.initPixi();
     const fieldId = this.route.snapshot.paramMap.get('fieldId') ?? 'field-1';
@@ -428,11 +434,44 @@ export class GameComponent implements OnInit, OnDestroy {
     this.keys[e.key] = false;
   };
 
+  private readonly handleTouchStart = (e: TouchEvent) => {
+    const touch = e.touches[0];
+    this.touchStartX = touch.clientX;
+    this.touchStartY = touch.clientY;
+    this.touchKeys = {};
+  };
+
+  private readonly handleTouchMove = (e: TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const dx = touch.clientX - this.touchStartX;
+    const dy = touch.clientY - this.touchStartY;
+    const threshold = 10; // px 以上動いたら方向を確定
+
+    this.touchKeys = {};
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      if (dx > threshold) this.touchKeys['ArrowRight'] = true;
+      else if (dx < -threshold) this.touchKeys['ArrowLeft'] = true;
+    } else {
+      if (dy > threshold) this.touchKeys['ArrowDown'] = true;
+      else if (dy < -threshold) this.touchKeys['ArrowUp'] = true;
+    }
+  };
+
+  private readonly handleTouchEnd = () => {
+    this.touchKeys = {};
+  };
+
   private initInput() {
     // キーを押した時にtrueを記録
     window.addEventListener('keydown', this.handleKeydown);
     // キーを離した時にfalseを記録
     window.addEventListener('keyup', this.handleKeyup);
+    // タッチ操作（スマホ対応）
+    const canvas = this.gameContainer.nativeElement as HTMLElement;
+    canvas.addEventListener('touchstart', this.handleTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', this.handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', this.handleTouchEnd, { passive: true });
   }
 
   private initSocket(fieldId: string) {
@@ -566,20 +605,21 @@ export class GameComponent implements OnInit, OnDestroy {
     let nextY = this.y;
     let moved = false;
 
-    // 押されているキーに応じて次の座標を計算
-    if (this.keys['ArrowLeft']) {
+    // 押されているキーに応じて次の座標を計算（キーボード or タッチ）
+    const activeKeys = { ...this.keys, ...this.touchKeys };
+    if (activeKeys['ArrowLeft']) {
       nextX -= this.speed;
       this.playerDirection = 'left';
     }
-    if (this.keys['ArrowRight']) {
+    if (activeKeys['ArrowRight']) {
       nextX += this.speed;
       this.playerDirection = 'right';
     }
-    if (this.keys['ArrowUp']) {
+    if (activeKeys['ArrowUp']) {
       nextY -= this.speed;
       this.playerDirection = 'up';
     }
-    if (this.keys['ArrowDown']) {
+    if (activeKeys['ArrowDown']) {
       nextY += this.speed;
       this.playerDirection = 'down';
     }
@@ -652,6 +692,11 @@ export class GameComponent implements OnInit, OnDestroy {
     // キーイベントリスナーを解除
     window.removeEventListener('keydown', this.handleKeydown);
     window.removeEventListener('keyup', this.handleKeyup);
+    // タッチイベントリスナーを解除
+    const canvas = this.gameContainer.nativeElement as HTMLElement;
+    canvas.removeEventListener('touchstart', this.handleTouchStart);
+    canvas.removeEventListener('touchmove', this.handleTouchMove);
+    canvas.removeEventListener('touchend', this.handleTouchEnd);
 
     // WebSocket接続を安全に切断
     this.socket?.close();
