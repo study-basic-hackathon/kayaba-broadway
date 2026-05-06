@@ -25,6 +25,8 @@ jobs:
 
       - name: Test
         run: npm test
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
       - name: Deploy to Cloudflare Workers
         run: npm run deploy

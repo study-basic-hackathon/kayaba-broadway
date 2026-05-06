@@ -22,7 +22,10 @@ export default defineConfig({
       return {
         wrangler: { configPath: "./wrangler.jsonc" },
         miniflare: {
-          bindings: { TEST_MIGRATIONS: migrations },
+          bindings: {
+            TEST_MIGRATIONS: migrations,
+            JWT_SECRET: process.env.JWT_SECRET ?? "test-jwt-secret-for-vitest",
+          },
         },
       };
     }),
