@@ -142,7 +142,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 4px;
   color: #fff;
-  font-size: 12px;
+  font-size: 16px; // iOS自動ズーム防止（16px未満だとフォーカス時にズームされる）
   padding: 4px 8px;
   outline: none;
 
