@@ -118,7 +118,6 @@ export const environment = {
 |-----------|------|---------|
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API トークン | Cloudflare ダッシュボード → My Profile → API Tokens |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare アカウント ID | `5833666f916ca87d1762c18ac1b4b32a` |
-| `JWT_SECRET` | JWT 署名シークレット | バックエンドと Partykit で共通の値 |
 | `PARTYKIT_TOKEN` | Partykit デプロイ用トークン | `npx partykit token generate` で生成 |
 | `PARTYKIT_LOGIN` | Partykit のログイン名 | `yasunariiguchi`（暫定。Partykit の組織アカウントへ移行時は変更が必要） |
 
