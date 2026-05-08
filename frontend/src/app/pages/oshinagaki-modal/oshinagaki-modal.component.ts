@@ -61,7 +61,7 @@ export class OshinagakiModalComponent {
   }
 
   getImageUrl(key: string): string {
-    return `http://localhost:8787/products/images/${key}`;
+    return `${environment.apiBaseUrl}/products/images/${key}`;
   }
 
   onBuy(id: string) {
@@ -101,7 +101,7 @@ export class OshinagakiModalComponent {
     if (!key) return;
 
     this.http
-      .get(`http://localhost:8787/purchase/download/${key}`, {
+      .get(`${environment.apiBaseUrl}/purchase/download/${key}`, {
         responseType: 'blob',
         observe: 'response',
       })
