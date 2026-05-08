@@ -13,7 +13,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import PartySocket from 'partysocket';
 import { Application, Assets, Text as PixiText, Rectangle, Sprite, Texture } from 'pixi.js';
 import { environment } from '../../../environments/environment';
@@ -72,6 +72,7 @@ export class GameComponent implements OnInit, OnDestroy {
   private playerLabel!: PixiText;
 
   private route = inject(ActivatedRoute);
+  router = inject(Router);
   private auth = inject(AuthService);
   private ngZone = inject(NgZone);
   private http = inject(HttpClient);
@@ -210,6 +211,12 @@ export class GameComponent implements OnInit, OnDestroy {
   // マップのタイル数（Tiledで設定した値）
   private mapCols = 28; // 横方向のタイル数
   private mapRows = 23; // 縦方向のタイル数
+
+  private readonly EXIT = {
+    minTileX: 12, // 出口の左端タイル
+    maxTileX: 16, // 出口の右端タイル
+    edgeTileY: 22, // 出口がある辺の下限タイル
+  };
 
   // 移動範囲のピクセルサイズ（タイルサイズ × 拡大倍率 × タイル数）
   private width = this.tileSize * this.scale * this.mapCols; // 16 * 4 * 28 = 1792px
@@ -659,6 +666,14 @@ export class GameComponent implements OnInit, OnDestroy {
     });
   }
 
+  private isAtExit(x: number, y: number): boolean {
+    const tileX = Math.floor(x / this.tileScaled);
+    const tileY = Math.floor(y / this.tileScaled);
+    return (
+      tileX >= this.EXIT.minTileX && tileX <= this.EXIT.maxTileX && tileY >= this.EXIT.edgeTileY - 1
+    );
+  }
+
   // 毎フレーム実行される処理
   private update() {
     let nextX = this.x;
@@ -687,7 +702,17 @@ export class GameComponent implements OnInit, OnDestroy {
     // 移動範囲の境界チェック（タイル1枚分の余白を持たせる）
     const tileScaled = this.tileSize * this.scale; // 16 * 4 = 64px
     nextX = Math.max(tileScaled, Math.min(nextX, this.width - tileScaled));
-    nextY = Math.max(tileScaled, Math.min(nextY, this.height - tileScaled));
+
+    // 出口にいるときはY下限を適用しない
+    if (this.isAtExit(nextX, nextY)) {
+      const nextTileY = Math.floor(nextY / tileScaled);
+      // 範囲外に出たら画面遷移などの処理
+      if (nextTileY > this.EXIT.edgeTileY) {
+        this.ngZone.run(() => this.router.navigate(['/fields']));
+      }
+    } else {
+      nextY = Math.max(tileScaled, Math.min(nextY, this.height - tileScaled));
+    }
 
     // 当たり判定チェック（通れる場合のみ移動）
     if (this.canMove(nextX, nextY)) {
