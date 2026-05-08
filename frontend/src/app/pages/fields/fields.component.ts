@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 interface Field {
   id: string;
@@ -55,7 +56,7 @@ export class FieldsComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.http.get<FieldsResponse>('http://localhost:8787/fields').subscribe({
+    this.http.get<FieldsResponse>(`${environment.apiBaseUrl}/fields`).subscribe({
       next: (data) => {
         this.fields.set(data.fields);
       },

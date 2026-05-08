@@ -85,6 +85,28 @@ export class GameComponent implements OnInit, OnDestroy {
 
   isOshinagakiModalOpen = false;
 
+  // PCかスマホかの判定（タッチデバイス判定）
+  readonly isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+  // チャットパネルの開閉状態（PCは常に展開、スマホのみトグル）
+  isChatOpen = !this.isMobile;
+  // チャット入力フォーカス中フラグ（タッチ移動を無効化するため）
+  isChatInputFocused = false;
+  // 最後にチャットを閉じた時刻（未読カウント用）。店舗ごとに管理
+  private lastChatClosedAt = signal<number>(0);
+  private static readonly CHAT_CLOSED_KEY_PREFIX = 'kayaba_chat_closed_at_';
+
+  // PCかスマホかの判定（タッチデバイス判定）
+  readonly isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+  // チャットパネルの開閉状態（PCは常に展開、スマホのみトグル）
+  isChatOpen = !this.isMobile;
+  // チャット入力フォーカス中フラグ（タッチ移動を無効化するため）
+  isChatInputFocused = false;
+  // 最後にチャットを閉じた時刻（未読カウント用）。店舗ごとに管理
+  private lastChatClosedAt = signal<number>(0);
+  private static readonly CHAT_CLOSED_KEY_PREFIX = 'kayaba_chat_closed_at_';
+
   menuItems = signal<Product[]>([]);
 
   // menuItems: Product[] = [
@@ -117,6 +139,10 @@ export class GameComponent implements OnInit, OnDestroy {
       if (shop) {
         const token = this.auth.getAccessToken();
         this.shopChatService.connect(shop.id, token);
+        // 入店したタイミングで、その店舗の最終既読時刻を復元する
+        this.lastChatClosedAt.set(this.loadLastChatClosedAt(shop.id));
+        // チャットはスマホのみ閉じた状態にリセット
+        this.isChatOpen = !this.isMobile;
 
         this.http
           .get<ProductsResponse>(`${environment.apiBaseUrl}/shops/${shop.id}/products`)
@@ -149,15 +175,51 @@ export class GameComponent implements OnInit, OnDestroy {
   isLoading = signal(true);
   error = signal<string | null>(null);
 
+  toggleChat() {
+    // PCは常に展開なのでトグル不要
+    if (!this.isMobile) return;
+    this.isChatOpen = !this.isChatOpen;
+    if (!this.isChatOpen) {
+      // チャットを閉じた時刻を店舗ごとに記録
+      const shopId = this.currentShop()?.id;
+      if (shopId) {
+        const now = Date.now();
+        localStorage.setItem(GameComponent.CHAT_CLOSED_KEY_PREFIX + shopId, String(now));
+        this.lastChatClosedAt.set(now);
+      }
+    }
+  }
+
+  get unreadCount(): number {
+    const closedAt = this.lastChatClosedAt();
+    return this.shopChatService.messages().filter((m) => m.timestamp > closedAt).length;
+  }
+
+  private loadLastChatClosedAt(shopId: string): number {
+    return Number(localStorage.getItem(GameComponent.CHAT_CLOSED_KEY_PREFIX + shopId) ?? 0);
+  }
+
+  onChatInputFocus() {
+    this.isChatInputFocused = true;
+  }
+
+  onChatInputBlur() {
+    this.isChatInputFocused = false;
+  }
+
   sendChatMessage() {
     const text = this.chatInputText.trim();
     if (!text) return;
-    this.shopChatService.sendMessage(text);
-    this.chatInputText = '';
+    const sent = this.shopChatService.sendMessage(text);
+    if (sent) {
+      this.chatInputText = '';
+    }
   }
 
   get currentUserId(): string | undefined {
-    return this.auth.user()?.id;
+    // auth.user() が null の場合（Safari ITP によるリフレッシュ失敗時など）は
+    // localStorage のアクセストークンから userId を取り出してフォールバック
+    return this.auth.user()?.id ?? this.auth.getUserIdFromToken();
   }
 
   // 現在押されているキーを管理するオブジェクト
@@ -203,6 +265,12 @@ export class GameComponent implements OnInit, OnDestroy {
   private tileScaled = this.tileSize * this.scale;
   private hitCharacter = (this.tileSize * this.scale) / 2;
 
+  // タッチ操作用：スワイプ開始位置
+  private touchStartX = 0;
+  private touchStartY = 0;
+  // タッチ中の仮想キー入力
+  private touchKeys: Record<string, boolean> = {};
+
   async ngOnInit() {
     await this.initPixi();
     const fieldId = this.route.snapshot.paramMap.get('fieldId') ?? 'field-1';
@@ -213,16 +281,18 @@ export class GameComponent implements OnInit, OnDestroy {
     // 店舗情報は非同期で取得（失敗しても移動には影響しない）
     this.loadShops(fieldId);
     const shopId = 'a1b2c3d4-0001-0000-0000-000000000001';
-    this.http.get<ProductsResponse>(`http://localhost:8787/shops/${shopId}/products`).subscribe({
-      next: (data) => {
-        this.products.set([data.products[0]]);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.error.set('商品の取得に失敗しました');
-        this.isLoading.set(false);
-      },
-    });
+    this.http
+      .get<ProductsResponse>(`${environment.apiBaseUrl}/shops/${shopId}/products`)
+      .subscribe({
+        next: (data) => {
+          this.products.set([data.products[0]]);
+          this.isLoading.set(false);
+        },
+        error: () => {
+          this.error.set('商品の取得に失敗しました');
+          this.isLoading.set(false);
+        },
+      });
   }
 
   private async loadShops(fieldId: string) {
@@ -263,7 +333,8 @@ export class GameComponent implements OnInit, OnDestroy {
     this.app.stage.addChild(this.player);
 
     // 自分の名前ラベルを表示
-    const displayName = this.auth.user()?.display_name ?? '';
+    const displayName =
+      this.auth.user()?.display_name ?? this.auth.getUserFromToken()?.display_name ?? '';
     this.playerLabel = new PixiText({
       text: displayName,
       style: { fontSize: 12, fill: 0xffffff },
@@ -439,11 +510,62 @@ export class GameComponent implements OnInit, OnDestroy {
     this.keys[e.key] = false;
   };
 
+  private readonly handleTouchStart = (e: TouchEvent) => {
+    const touch = e.touches[0];
+    this.touchStartX = touch.clientX;
+    this.touchStartY = touch.clientY;
+    this.touchKeys = {};
+  };
+
+  private readonly handleTouchMove = (e: TouchEvent) => {
+    // チャット入力中またはチャットパネル展開中はゲーム操作をしない
+    if (this.isChatInputFocused || this.isChatOpen) {
+      this.touchKeys = {};
+      return;
+    }
+    e.preventDefault();
+    const touch = e.touches[0];
+    const dx = touch.clientX - this.touchStartX;
+    const dy = touch.clientY - this.touchStartY;
+    const threshold = 10; // px 以上動いたら方向を確定
+
+    this.touchKeys = {};
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      if (dx > threshold) this.touchKeys['ArrowRight'] = true;
+      else if (dx < -threshold) this.touchKeys['ArrowLeft'] = true;
+    } else {
+      if (dy > threshold) this.touchKeys['ArrowDown'] = true;
+      else if (dy < -threshold) this.touchKeys['ArrowUp'] = true;
+    }
+  };
+
+  private readonly handleTouchEnd = () => {
+    this.touchKeys = {};
+  };
+
+  private readonly handleViewportResize = () => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    // ソフトキーボードの高さ = ウィンドウ高さ - visualViewportの高さ - オフセット
+    const keyboardHeight = window.innerHeight - viewport.height - viewport.offsetTop;
+    document.documentElement.style.setProperty(
+      '--keyboard-height',
+      `${Math.max(0, keyboardHeight)}px`,
+    );
+  };
+
   private initInput() {
     // キーを押した時にtrueを記録
     window.addEventListener('keydown', this.handleKeydown);
     // キーを離した時にfalseを記録
     window.addEventListener('keyup', this.handleKeyup);
+    // タッチ操作（スマホ対応）
+    const canvas = this.gameContainer.nativeElement as HTMLElement;
+    canvas.addEventListener('touchstart', this.handleTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', this.handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', this.handleTouchEnd, { passive: true });
+    // ソフトキーボード対応（visualViewport）
+    window.visualViewport?.addEventListener('resize', this.handleViewportResize);
   }
 
   private initSocket(fieldId: string) {
@@ -453,6 +575,11 @@ export class GameComponent implements OnInit, OnDestroy {
       host: environment.partykitHost,
       room: fieldId,
       ...(token ? { query: { token } } : {}),
+    });
+
+    // 接続確立直後に現在位置を送信して他のユーザーに自分の存在を知らせる
+    this.socket.addEventListener('open', () => {
+      this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y } }));
     });
 
     this.socket.onmessage = (event) => {
@@ -572,20 +699,21 @@ export class GameComponent implements OnInit, OnDestroy {
     let nextY = this.y;
     let moved = false;
 
-    // 押されているキーに応じて次の座標を計算
-    if (this.keys['ArrowLeft']) {
+    // 押されているキーに応じて次の座標を計算（キーボード or タッチ）
+    const activeKeys = { ...this.keys, ...this.touchKeys };
+    if (activeKeys['ArrowLeft']) {
       nextX -= this.speed;
       this.playerDirection = 'left';
     }
-    if (this.keys['ArrowRight']) {
+    if (activeKeys['ArrowRight']) {
       nextX += this.speed;
       this.playerDirection = 'right';
     }
-    if (this.keys['ArrowUp']) {
+    if (activeKeys['ArrowUp']) {
       nextY -= this.speed;
       this.playerDirection = 'up';
     }
-    if (this.keys['ArrowDown']) {
+    if (activeKeys['ArrowDown']) {
       nextY += this.speed;
       this.playerDirection = 'down';
     }
@@ -658,6 +786,14 @@ export class GameComponent implements OnInit, OnDestroy {
     // キーイベントリスナーを解除
     window.removeEventListener('keydown', this.handleKeydown);
     window.removeEventListener('keyup', this.handleKeyup);
+    // タッチイベントリスナーを解除
+    const canvas = this.gameContainer.nativeElement as HTMLElement;
+    canvas.removeEventListener('touchstart', this.handleTouchStart);
+    canvas.removeEventListener('touchmove', this.handleTouchMove);
+    canvas.removeEventListener('touchend', this.handleTouchEnd);
+    // visualViewportリスナーを解除
+    window.visualViewport?.removeEventListener('resize', this.handleViewportResize);
+    document.documentElement.style.removeProperty('--keyboard-height');
 
     // WebSocket接続を安全に切断
     this.socket?.close();

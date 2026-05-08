@@ -1,46 +1,61 @@
 <div class="wrapper">
   <div #gameContainer></div>
   @if (currentShop()) {
-    <div class="shop-overlay">
-      <span class="shop-name">🏪 {{ currentShop()!.name }}</span>
-
-      <div class="chat-panel">
-        <div class="chat-messages" #chatMessages>
-          @for (msg of shopChatService.messages(); track msg.timestamp) {
-            <div
-              class="chat-row"
-              [class.own]="msg.userId === currentUserId"
-              [class.other]="msg.userId !== currentUserId"
-            >
-              @if (msg.userId !== currentUserId) {
-                <div class="chat-meta">
-                  <span class="chat-user other">{{ msg.displayName }}</span>
-                </div>
-              }
-              <div class="chat-bubble-row">
-                @if (msg.userId === currentUserId) {
-                  <span class="chat-time">{{ msg.timestamp | date: 'HH:mm' }}</span>
-                }
-                <div class="chat-bubble">{{ msg.text }}</div>
-                @if (msg.userId !== currentUserId) {
-                  <span class="chat-time">{{ msg.timestamp | date: 'HH:mm' }}</span>
-                }
-              </div>
-            </div>
-          }
-        </div>
-        <div class="chat-input-area">
-          <input
-            class="chat-input"
-            type="text"
-            [(ngModel)]="chatInputText"
-            (keydown.enter)="sendChatMessage()"
-            placeholder="メッセージを入力..."
-            maxlength="200"
-          />
-          <button class="chat-send-btn" (click)="sendChatMessage()">送信</button>
-        </div>
+    <div class="shop-overlay" [class.chat-open]="isChatOpen">
+      <div class="shop-header">
+        <span class="shop-name">🏪 {{ currentShop()!.name }}</span>
+        @if (isMobile) {
+          <button class="chat-toggle-btn" (click)="toggleChat()" [attr.aria-label]="isChatOpen ? 'チャットを閉じる' : 'チャットを開く'">
+            {{ isChatOpen ? '✕ 閉じる' : '💬 チャット' }}
+            @if (!isChatOpen && unreadCount > 0) {
+              <span class="chat-badge">{{ unreadCount }}</span>
+            }
+          </button>
+        }
       </div>
+
+      @if (isChatOpen) {
+        <div class="chat-panel">
+          <div class="chat-messages" #chatMessages>
+            @for (msg of shopChatService.messages(); track msg.timestamp) {
+              <div
+                class="chat-row"
+                [class.own]="msg.userId === currentUserId"
+                [class.other]="msg.userId !== currentUserId"
+              >
+                @if (msg.userId !== currentUserId) {
+                  <div class="chat-meta">
+                    <span class="chat-user other">{{ msg.displayName }}</span>
+                  </div>
+                }
+                <div class="chat-bubble-row">
+                  @if (msg.userId === currentUserId) {
+                    <span class="chat-time">{{ msg.timestamp | date: 'HH:mm' }}</span>
+                  }
+                  <div class="chat-bubble">{{ msg.text }}</div>
+                  @if (msg.userId !== currentUserId) {
+                    <span class="chat-time">{{ msg.timestamp | date: 'HH:mm' }}</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+          <div class="chat-input-area">
+            <input
+              class="chat-input"
+              type="text"
+              [(ngModel)]="chatInputText"
+              (keydown.enter)="sendChatMessage()"
+              (focus)="onChatInputFocus()"
+              (blur)="onChatInputBlur()"
+              placeholder="メッセージを入力..."
+              maxlength="200"
+              autocomplete="off"
+            />
+            <button class="chat-send-btn" (click)="sendChatMessage()">送信</button>
+          </div>
+        </div>
+      }
     </div>
   }
 

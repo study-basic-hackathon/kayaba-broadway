@@ -1,10 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "kayaba-broadway",
+  "name": "api",
+  "account_id": "5833666f916ca87d1762c18ac1b4b32a",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-12",
+  "workers_dev": true,
+  "preview_urls": false,
   "vars": {
-    "ENVIRONMENT": "development",
+    "ENVIRONMENT": "production",
+    "CORS_ORIGIN": "http://localhost:4200,https://kayaba-broadway-frontend.pages.dev,https://c009aca8.kayaba-broadway-frontend.pages.dev",
   },
   "d1_databases": [
     {
@@ -24,6 +28,7 @@
     "production": {
       "vars": {
         "ENVIRONMENT": "production",
+        "CORS_ORIGIN": "https://kayaba-broadway-frontend.pages.dev,https://c009aca8.kayaba-broadway-frontend.pages.dev",
       },
     },
   },

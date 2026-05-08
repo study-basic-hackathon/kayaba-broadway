@@ -13,6 +13,7 @@
 | [docs/api-endpoints.md](docs/api-endpoints.md) | APIエンドポイント一覧。実装済みエンドポイントの仕様・リクエスト・レスポンス例をまとめたドキュメント |
 | [docs/system-flow.md](docs/system-flow.md) | システムフロー図。フロントエンド・バックエンド・Partykit 間の処理フローをMermaidシーケンス図で記述 |
 | [docs/partykit.md](docs/partykit.md) | Partykit 仕様書。接続URL・認証・メッセージ仕様・ライフサイクル・ローカル開発手順をまとめたドキュメント |
+| [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md) | Cloudflare デプロイ手順書。本番環境の構成・CI/CD（GitHub Actions）・手動操作が必要なケース・GitHub Secrets の登録方法をまとめたドキュメント |
 
 ## 参照スキルガイド（Skills）
 

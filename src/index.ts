@@ -16,15 +16,17 @@ import { type AppType } from "./types";
 
 const app = new Hono<AppType>();
 
-app.use(
-  "/*",
-  cors({
-    origin: "http://localhost:4200",
+app.use("/*", (c, next) => {
+  const origins = (c.env.CORS_ORIGIN ?? "http://localhost:4200")
+    .split(",")
+    .map((s: string) => s.trim());
+  return cors({
+    origin: origins,
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
     maxAge: 600,
-  }),
-);
+  })(c, next);
+});
 
 app.use("/*", async (c, next) => {
   await next();

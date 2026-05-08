@@ -223,7 +223,7 @@ export default class FieldRoom implements Party.Server {
 
     // その userId の最初の接続時のみ、他のユーザー全員に join を通知
     if (!hadExistingConnection) {
-      const joinMessage: JoinMessage = { message_type: "join", data: { userId, displayName, x: 0, y: 0 } };
+      const joinMessage: JoinMessage = { message_type: "join", data: { userId, displayName, x: userState.x, y: userState.y } };
       this.room.broadcast(JSON.stringify(joinMessage), [conn.id]);
     }
   }

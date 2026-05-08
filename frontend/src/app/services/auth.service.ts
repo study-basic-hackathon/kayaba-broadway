@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 interface User {
   id: string;
@@ -35,7 +36,7 @@ export class AuthService {
   async register(display_name: string, email: string, password: string, confirm_password: string) {
     try {
       const obs$ = this.http.post<AuthResponse>(
-        'http://localhost:8787/auth/register',
+        `${environment.apiBaseUrl}/auth/register`,
         { display_name, email, password, confirm_password },
         { withCredentials: true },
       );
@@ -50,7 +51,7 @@ export class AuthService {
   async login(email: string, password: string) {
     try {
       const obs$ = this.http.post<AuthResponse>(
-        'http://localhost:8787/auth/login',
+        `${environment.apiBaseUrl}/auth/login`,
         { email, password },
         { withCredentials: true },
       );
@@ -65,7 +66,7 @@ export class AuthService {
   async logout() {
     try {
       await firstValueFrom(
-        this.http.post('http://localhost:8787/auth/logout', {}, { withCredentials: true }),
+        this.http.post(`${environment.apiBaseUrl}/auth/logout`, {}, { withCredentials: true }),
       );
     } finally {
       localStorage.removeItem('accessToken');
@@ -82,9 +83,39 @@ export class AuthService {
     this.currentUser.set(user);
   }
 
+  /**
+   * localStorage のアクセストークンのペイロードをデコードして返す。
+   * auth.user() が null（Safari ITP によるリフレッシュ失敗時など）のフォールバック用。
+   */
+  getUserFromToken(): Pick<User, 'id' | 'display_name' | 'email'> | undefined {
+    const token = this.getAccessToken();
+    if (!token) return undefined;
+    try {
+      const payload = token.split('.')[1];
+      // atob() は Latin-1 のみ対応で日本語が文字化けするため
+      // Uint8Array → UTF-8 デコードで正しく変換する
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const binary = atob(base64);
+      const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+      const decoded = JSON.parse(new TextDecoder().decode(bytes));
+      if (!decoded.id) return undefined;
+      return {
+        id: decoded.id as string,
+        email: decoded.email as string ?? '',
+        display_name: decoded.display_name as string ?? '',
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
+  getUserIdFromToken(): string | undefined {
+    return this.getUserFromToken()?.id;
+  }
+
   refresh() {
     return this.http.post<AuthResponse>(
-      'http://localhost:8787/auth/refresh',
+      `${environment.apiBaseUrl}/auth/refresh`,
       {},
       { withCredentials: true },
     );
