@@ -17,9 +17,10 @@ npx wrangler login
 **2. ローカル R2 にファイルをアップロードする**
 
 ```bash
-npx wrangler r2 object put kayaba-broadway-storage/products/sample-vol1.pdf \
-  --file ./src/data/products/sample-vol1.pdf \
-  --local
+npx wrangler r2 object put kayaba-broadway-storage/products/coffee.mp3 --file ./src/data/products/coffee.mp3 --local && \
+npx wrangler r2 object put kayaba-broadway-storage/products/shortcake.mp3 --file ./src/data/products/shortcake.mp3 --local && \
+npx wrangler r2 object put kayaba-broadway-storage/thumbnails/coffee.png --file ./src/data/thumbnails/coffee.png --local && \
+npx wrangler r2 object put kayaba-broadway-storage/thumbnails/shortcake.png --file ./src/data/thumbnails/shortcake.png --local
 ```
 
 - `.wrangler/state/v3/r2/` 配下のローカルストレージに保存される
