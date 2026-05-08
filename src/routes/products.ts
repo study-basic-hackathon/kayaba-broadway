@@ -6,6 +6,17 @@ import { type AppType } from "../types";
 
 const router = new Hono<AppType>();
 
+router.get("/images/*", async (c) => {
+  const key = c.req.path.replace("/products/images/", "");
+  const object = await c.env.BUCKET?.get(key);
+  if (!object) return c.json({ error: "画像が見つかりません" }, 404);
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("Cache-Control", "public, max-age=31536000");
+  return new Response(object.body, { headers });
+});
+
 router.get("/:id", async (c) => {
   const { id } = c.req.param();
 

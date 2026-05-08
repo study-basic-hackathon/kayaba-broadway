@@ -45,6 +45,6 @@
   }
 
   @if (isOshinagakiModalOpen) {
-    <app-oshinagaki-modal [menuItems]="menuItems" (close)="isOshinagakiModalOpen = false" />
+    <app-oshinagaki-modal [menuItems]="menuItems()" (close)="isOshinagakiModalOpen = false" />
   }
 </div>

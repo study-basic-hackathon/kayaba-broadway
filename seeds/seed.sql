@@ -16,5 +16,5 @@ INSERT INTO fields (id, name, description, background_url, width, height, create
 
 INSERT INTO shops (id, field_id, name, description, zone_col, zone_row, zone_width, zone_height, created_at) VALUES ('a1b2c3d4-0001-0000-0000-000000000001', 'f1e2d3c4-0001-0000-0000-000000000001', '茅場書房', '同人誌・デジタルコンテンツを幅広く取り扱うお店です。', 10, 7, 7, 7, unixepoch());
 
-INSERT INTO products (id, shop_id, name, description, price, file_url, thumbnail_url, created_at) VALUES ('c3d4e5f6-0001-0000-0000-000000000001', 'a1b2c3d4-0001-0000-0000-000000000001', 'サンプル同人誌 Vol.1', 'サンプルの同人誌です。', 500, 'products/sample-vol1.pdf', 'thumbnails/sample-vol1.jpg', unixepoch());
-INSERT INTO products (id, shop_id, name, description, price, file_url, thumbnail_url, created_at) VALUES ('c3d4e5f6-0001-0000-0000-000000000002', 'a1b2c3d4-0001-0000-0000-000000000001', 'サンプル同人誌 Vol.2', 'サンプルの同人誌の第2巻です。', 500, 'products/sample-vol2.pdf', 'thumbnails/sample-vol2.jpg', unixepoch());
+INSERT INTO products (id, shop_id, name, description, price, file_url, thumbnail_url, created_at) VALUES ('c3d4e5f6-0001-0000-0000-000000000001', 'a1b2c3d4-0001-0000-0000-000000000001', 'コーヒー選曲', '苦々しい雰囲気の大人なBGMを詰め込んでいます。', 300, 'products/coffee.mp3', 'thumbnails/coffee.png', unixepoch());
+INSERT INTO products (id, shop_id, name, description, price, file_url, thumbnail_url, created_at) VALUES ('c3d4e5f6-0001-0000-0000-000000000002', 'a1b2c3d4-0001-0000-0000-000000000001', 'ショートケーキ選曲', '甘い雰囲気のポップなBGMを詰め込んでいます。', 500, 'products/shortcake.mp3', 'thumbnails/shortcake.png', unixepoch());

@@ -8,6 +8,7 @@ interface Product {
   description: string | null;
   price: number;
   file_url: string;
+  thumbnail_url: string;
 }
 
 @Component({
@@ -25,10 +26,10 @@ export class OshinagakiModalComponent {
   products = signal<Product[]>([]);
   isLoading = signal(true);
   error = signal<string | null>(null);
-  isPaymentStep = signal(false);
   isPaymentLoading = signal(false);
-  isComplete = signal(false);
   paymentError = signal<string | null>(null);
+  step = signal<'menu' | 'payment' | 'complete'>('menu');
+  selectedItem = signal<Product | null>(null);
 
   close = output<void>();
   buy = output<string>();
@@ -42,8 +43,7 @@ export class OshinagakiModalComponent {
   }
 
   onBack(): void {
-    this.isPaymentStep.set(false);
-    this.isComplete.set(false);
+    this.step.set('menu');
     this.paymentError.set(null);
   }
 
@@ -56,25 +56,25 @@ export class OshinagakiModalComponent {
     if (error) {
       this.paymentError.set(error.message ?? 'エラーが発生しました');
     } else {
-      this.isComplete.set(true);
-      setTimeout(() => {
-        this.isPaymentStep.set(false);
-        this.isComplete.set(false);
-        this.paymentError.set(null);
-        this.elements = null;
-      }, 2000);
+      this.step.set('complete');
     }
   }
 
-  onBuy(productId: string) {
-    this.isPaymentStep.set(true);
+  getImageUrl(key: string): string {
+    return `http://localhost:8787/products/images/${key}`;
+  }
+
+  onBuy(id: string) {
+    const item = this.menuItems().find((p) => p.id === id) ?? null;
+    this.selectedItem.set(item);
+    this.step.set('payment');
     this.isPaymentLoading.set(true);
 
     this.http
       .post<{
         clientSecret: string;
         customerSessionClientSecret: string;
-      }>('http://localhost:8787/payment/create-payment-intent', { product_id: productId })
+      }>('http://localhost:8787/payment/create-payment-intent', { product_id: id })
       .subscribe({
         next: async ({ clientSecret, customerSessionClientSecret }) => {
           if (!this.stripe) return;
@@ -93,6 +93,31 @@ export class OshinagakiModalComponent {
           this.paymentError.set('読み込みに失敗しました');
           this.isPaymentLoading.set(false);
         },
+      });
+  }
+
+  onDownload(): void {
+    const key = this.selectedItem()?.file_url;
+    if (!key) return;
+
+    this.http
+      .get(`http://localhost:8787/purchase/download/${key}`, {
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .subscribe({
+        next: (res) => {
+          const blob = res.body!;
+          const fileName = key.split('/').pop() ?? 'download';
+
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          a.click();
+          URL.revokeObjectURL(url);
+        },
+        error: () => {},
       });
   }
 }

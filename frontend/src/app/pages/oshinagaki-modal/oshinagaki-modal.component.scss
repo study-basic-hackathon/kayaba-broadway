@@ -19,7 +19,9 @@
   box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
 }
 
-.menu-header {
+// ── ヘッダー（全ステップ共通） ──────────────────────
+.menu-header,
+.dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -31,6 +33,13 @@
   }
 }
 
+.dialog-header {
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgb(0 0 0 / 8%);
+}
+
+// ── ボタン ──────────────────────────────────────────
 .close-button {
   border: none;
   background: transparent;
@@ -39,6 +48,51 @@
   color: #6b3f24;
 }
 
+.back-button {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #6b3f24;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgb(107 63 36 / 10%);
+  }
+}
+
+.buy-button {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: #8b5a2b;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-purchase {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: #8b5a2b;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+// ── メニューリスト ───────────────────────────────────
 .menu-list {
   display: grid;
   gap: 14px;
@@ -86,35 +140,7 @@
   font-size: 18px;
 }
 
-.buy-button {
-  border: none;
-  border-radius: 999px;
-  padding: 8px 16px;
-  background: #8b5a2b;
-  color: white;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-// 支払い画面
-.dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 1rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.dialog-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
+// ── 支払い画面 ───────────────────────────────────────
 .dialog-body {
   margin-bottom: 1rem;
 }
@@ -127,23 +153,5 @@
 
 .dialog-footer {
   padding-top: 1rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.btn-purchase {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  background: #8b5a2b;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.15s;
-
-  &:hover {
-    opacity: 0.85;
-  }
+  border-top: 1px solid rgb(0 0 0 / 8%);
 }

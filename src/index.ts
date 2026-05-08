@@ -44,7 +44,11 @@ const factory = createFactory<{ Bindings: Env }>();
 app.use(
   "/*",
   factory.createMiddleware(async (c, next) => {
-    if (c.req.path.startsWith("/auth/") || c.req.path.startsWith("/debug/")) {
+    if (
+      c.req.path.startsWith("/auth/") ||
+      c.req.path.startsWith("/debug/") ||
+      c.req.path.startsWith("/products/images")
+    ) {
       return next();
     }
 
