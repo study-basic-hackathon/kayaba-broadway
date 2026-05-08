@@ -96,41 +96,7 @@ export class GameComponent implements OnInit, OnDestroy {
   private lastChatClosedAt = signal<number>(0);
   private static readonly CHAT_CLOSED_KEY_PREFIX = 'kayaba_chat_closed_at_';
 
-  // PCかスマホかの判定（タッチデバイス判定）
-  readonly isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-  // チャットパネルの開閉状態（PCは常に展開、スマホのみトグル）
-  isChatOpen = !this.isMobile;
-  // チャット入力フォーカス中フラグ（タッチ移動を無効化するため）
-  isChatInputFocused = false;
-  // 最後にチャットを閉じた時刻（未読カウント用）。店舗ごとに管理
-  private lastChatClosedAt = signal<number>(0);
-  private static readonly CHAT_CLOSED_KEY_PREFIX = 'kayaba_chat_closed_at_';
-
   menuItems = signal<Product[]>([]);
-
-  // menuItems: Product[] = [
-  //   {
-  //     id: 'c3d4e5f6-0001-0000-0000-000000000001',
-  //     shop_id: '',
-  //     file_url: './assets/items/01.png',
-  //     name: 'コーヒー選曲',
-  //     description: '苦々しい雰囲気の大人なBGMを詰め込んでいます。',
-  //     price: 300,
-  //     thumbnail_url: '',
-  //     created_at: 0,
-  //   },
-  //   {
-  //     id: 'c3d4e5f6-0001-0000-0000-000000000002',
-  //     shop_id: '',
-  //     file_url: './assets/items/02.png',
-  //     name: 'ショートケーキ選曲',
-  //     description: '甘い雰囲気のポップなBGMを詰め込んでいます。',
-  //     price: 500,
-  //     thumbnail_url: '',
-  //     created_at: 0,
-  //   },
-  // ];
 
   constructor(private cdr: ChangeDetectorRef) {
     // currentShop が変化したら shop チャットの接続・切断を制御する

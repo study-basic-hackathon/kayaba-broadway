@@ -74,7 +74,7 @@ export class OshinagakiModalComponent {
       .post<{
         clientSecret: string;
         customerSessionClientSecret: string;
-      }>(`${environment.apiBaseUrl}/payment/create-payment-intent`, { product_id: productId })
+      }>(`${environment.apiBaseUrl}/payment/create-payment-intent`, { product_id: id })
       .subscribe({
         next: async ({ clientSecret, customerSessionClientSecret }) => {
           if (!this.stripe) return;
