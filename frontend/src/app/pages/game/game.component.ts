@@ -286,6 +286,7 @@ export class GameComponent implements OnInit, OnDestroy {
     await this.app.init({
       width: window.innerWidth,
       height: window.innerHeight,
+      background: 0x000000,
     });
     this.gameContainer.nativeElement.appendChild(this.app.canvas);
 
@@ -318,8 +319,8 @@ export class GameComponent implements OnInit, OnDestroy {
     this.app.stage.addChild(this.playerLabel);
 
     // 初期カメラ位置をプレイヤーが画面中央になるように設定
-    this.app.stage.x = this.app.screen.width / 2 - this.x;
-    this.app.stage.y = this.app.screen.height / 2 - this.y;
+    this.app.stage.x = Math.round(this.app.screen.width / 2 - this.x);
+    this.app.stage.y = Math.round(this.app.screen.height / 2 - this.y);
   }
 
   //キャラクタースプライトシートを区切って出力
@@ -722,14 +723,14 @@ export class GameComponent implements OnInit, OnDestroy {
     }
 
     // 自分のプレイヤーの位置を更新
-    this.player.x = this.x;
-    this.player.y = this.y;
+    this.player.x = Math.round(this.x);
+    this.player.y = Math.round(this.y);
     this.playerLabel.x = this.x;
     this.playerLabel.y = this.y - 28;
 
     // カメラをプレイヤーに追従させる（プレイヤーが常に画面中央に表示される）
-    this.app.stage.x = this.app.screen.width / 2 - this.x;
-    this.app.stage.y = this.app.screen.height / 2 - this.y;
+    this.app.stage.x = Math.round(this.app.screen.width / 2 - this.x);
+    this.app.stage.y = Math.round(this.app.screen.height / 2 - this.y);
 
     // 移動した時だけサーバーに送信（毎フレーム送ると通信量が増えるため）
     if (moved) {
