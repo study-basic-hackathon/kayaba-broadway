@@ -1,15 +1,15 @@
-import { createStripeCustomer, fetchUserPayment } from "@/services/payment";
-import { zValidator } from "@hono/zod-validator";
-import { and, eq, lt } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
-import { Hono } from "hono";
-import { getCookie, setCookie } from "hono/cookie";
-import { sign, verify } from "hono/jwt";
-import { z } from "zod";
-import { ALG } from "../constants";
-import { refreshTokens, users } from "../db/schema";
-import { type AppType } from "../types";
-import { hashPassword, verifyPassword } from "../utils/hash";
+import { createStripeCustomer, fetchUserPayment } from '@/services/payment';
+import { zValidator } from '@hono/zod-validator';
+import { and, eq, lt } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
+import { getCookie, setCookie } from 'hono/cookie';
+import { sign, verify } from 'hono/jwt';
+import { z } from 'zod';
+import { ALG } from '../constants';
+import { refreshTokens, users } from '../db/schema';
+import { type AppType } from '../types';
+import { hashPassword, verifyPassword } from '../utils/hash';
 
 const ACCESS_TOKEN_EXPIRES_IN = 60 * 15;
 const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24 * 7;
@@ -24,34 +24,27 @@ const registerSchema = z
     confirm_password: z.string(),
   })
   .refine((data) => data.password === data.confirm_password, {
-    error: "パスワードが一致しません",
-    path: ["confirm_password"],
+    error: 'パスワードが一致しません',
+    path: ['confirm_password'],
   });
 
-router.post("/register", zValidator("json", registerSchema), async (c) => {
-  const { display_name, email, password } = c.req.valid("json");
+router.post('/register', zValidator('json', registerSchema), async (c) => {
+  const { display_name, email, password } = c.req.valid('json');
   const db = drizzle(c.env.DB!);
 
-  const existing = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .get();
+  const existing = await db.select().from(users).where(eq(users.email, email)).get();
 
   if (existing) {
-    return c.json({ error: "このメールアドレスはすでに登録されています" }, 409);
+    return c.json({ error: 'このメールアドレスはすでに登録されています' }, 409);
   }
 
   if (!c.env.JWT_SECRET) {
-    console.error("JWT_SECRET is not set");
-    return c.json({ error: "サーバーエラー" }, 500);
+    console.error('JWT_SECRET is not set');
+    return c.json({ error: 'サーバーエラー' }, 500);
   }
 
   const password_hash = await hashPassword(password);
-  const [result] = await db
-    .insert(users)
-    .values({ email, display_name, password_hash })
-    .returning();
+  const [result] = await db.insert(users).values({ email, display_name, password_hash }).returning();
 
   const nowUnix = Math.floor(Date.now() / 1000);
 
@@ -71,7 +64,7 @@ router.post("/register", zValidator("json", registerSchema), async (c) => {
     {
       id: result.id,
       email: result.email,
-      type: "refresh",
+      type: 'refresh',
       exp: refreshTokenExpiresAt,
     },
     c.env.JWT_SECRET,
@@ -84,15 +77,15 @@ router.post("/register", zValidator("json", registerSchema), async (c) => {
     expires_at: refreshTokenExpiresAt,
   });
 
-  const isProduction = c.env.ENVIRONMENT === "production";
-  setCookie(c, "refreshToken", refreshToken, {
+  const isProduction = c.env.ENVIRONMENT === 'production';
+  setCookie(c, 'refreshToken', refreshToken, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? "None" : "Lax",
+    sameSite: isProduction ? 'None' : 'Lax',
     maxAge: REFRESH_TOKEN_EXPIRES_IN,
   });
 
-  const stripe = c.get("stripe");
+  const stripe = c.get('stripe');
   const userPaymentRecord = await fetchUserPayment(db, result.id);
   if (!userPaymentRecord) {
     await createStripeCustomer(stripe, db, result.id, result.email);
@@ -108,29 +101,25 @@ const loginSchema = z.object({
   password: z.string(),
 });
 
-router.post("/login", zValidator("json", loginSchema), async (c) => {
-  const { email, password } = c.req.valid("json");
+router.post('/login', zValidator('json', loginSchema), async (c) => {
+  const { email, password } = c.req.valid('json');
 
   const db = drizzle(c.env.DB!);
-  const storedUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .get();
+  const storedUser = await db.select().from(users).where(eq(users.email, email)).get();
 
   if (!storedUser) {
-    return c.json({ error: "メールアドレスまたはパスワードが違います" }, 401);
+    return c.json({ error: 'メールアドレスまたはパスワードが違います' }, 401);
   }
 
   const isValid = await verifyPassword(password, storedUser.password_hash);
 
   if (!isValid) {
-    return c.json({ error: "メールアドレスまたはパスワードが違います" }, 401);
+    return c.json({ error: 'メールアドレスまたはパスワードが違います' }, 401);
   }
 
   if (!c.env.JWT_SECRET) {
-    console.error("JWT_SECRET is not set");
-    return c.json({ error: "サーバーエラー" }, 500);
+    console.error('JWT_SECRET is not set');
+    return c.json({ error: 'サーバーエラー' }, 500);
   }
 
   const nowUnix = Math.floor(Date.now() / 1000);
@@ -151,7 +140,7 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
     {
       id: storedUser.id,
       email: storedUser.email,
-      type: "refresh",
+      type: 'refresh',
       exp: refreshTokenExpiresAt,
     },
     c.env.JWT_SECRET,
@@ -159,14 +148,7 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
   );
 
   // 期限切れトークンを削除してからinsert
-  await db
-    .delete(refreshTokens)
-    .where(
-      and(
-        eq(refreshTokens.user_id, storedUser.id),
-        lt(refreshTokens.expires_at, nowUnix),
-      ),
-    );
+  await db.delete(refreshTokens).where(and(eq(refreshTokens.user_id, storedUser.id), lt(refreshTokens.expires_at, nowUnix)));
 
   await db.insert(refreshTokens).values({
     user_id: storedUser.id,
@@ -174,15 +156,15 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
     expires_at: refreshTokenExpiresAt,
   });
 
-  const isProductionLogin = c.env.ENVIRONMENT === "production";
-  setCookie(c, "refreshToken", refreshToken, {
+  const isProductionLogin = c.env.ENVIRONMENT === 'production';
+  setCookie(c, 'refreshToken', refreshToken, {
     httpOnly: true,
     secure: isProductionLogin,
-    sameSite: isProductionLogin ? "None" : "Lax",
+    sameSite: isProductionLogin ? 'None' : 'Lax',
     maxAge: REFRESH_TOKEN_EXPIRES_IN,
   });
 
-  const stripe = c.get("stripe");
+  const stripe = c.get('stripe');
   const userPaymentRecord = await fetchUserPayment(db, storedUser.id);
   if (!userPaymentRecord) {
     await createStripeCustomer(stripe, db, storedUser.id, storedUser.email);
@@ -193,29 +175,25 @@ router.post("/login", zValidator("json", loginSchema), async (c) => {
   return c.json({ accessToken, user });
 });
 
-router.post("/refresh", async (c) => {
-  const refreshToken = getCookie(c, "refreshToken");
+router.post('/refresh', async (c) => {
+  const refreshToken = getCookie(c, 'refreshToken');
 
   if (!refreshToken) {
-    return c.json({ error: "リフレッシュトークンがありません" }, 401);
+    return c.json({ error: 'リフレッシュトークンがありません' }, 401);
   }
 
   const db = drizzle(c.env.DB!);
-  const stored = await db
-    .select()
-    .from(refreshTokens)
-    .where(eq(refreshTokens.token, refreshToken))
-    .get();
+  const stored = await db.select().from(refreshTokens).where(eq(refreshTokens.token, refreshToken)).get();
 
   if (!stored) {
-    return c.json({ error: "無効なトークンです" }, 401);
+    return c.json({ error: '無効なトークンです' }, 401);
   }
 
   const nowUnix = Math.floor(Date.now() / 1000);
 
   if (stored.expires_at < nowUnix) {
     await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken));
-    return c.json({ error: "トークンの有効期限が切れています" }, 401);
+    return c.json({ error: 'トークンの有効期限が切れています' }, 401);
   }
 
   try {
@@ -228,10 +206,8 @@ router.post("/refresh", async (c) => {
       .get();
 
     if (!storedUser) {
-      await db
-        .delete(refreshTokens)
-        .where(eq(refreshTokens.token, refreshToken));
-      return c.json({ error: "ユーザーが存在しません" }, 401);
+      await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken));
+      return c.json({ error: 'ユーザーが存在しません' }, 401);
     }
 
     const accessToken = await sign(
@@ -249,23 +225,23 @@ router.post("/refresh", async (c) => {
 
     return c.json({ accessToken, user });
   } catch (error) {
-    return c.json({ error: "無効なトークン" }, 401);
+    return c.json({ error: '無効なトークン' }, 401);
   }
 });
 
-router.post("/logout", async (c) => {
+router.post('/logout', async (c) => {
   const db = drizzle(c.env.DB!);
-  const refreshToken = getCookie(c, "refreshToken");
+  const refreshToken = getCookie(c, 'refreshToken');
 
   if (refreshToken) {
     await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken));
   }
 
-  const isProductionLogout = c.env.ENVIRONMENT === "production";
-  setCookie(c, "refreshToken", "", {
+  const isProductionLogout = c.env.ENVIRONMENT === 'production';
+  setCookie(c, 'refreshToken', '', {
     httpOnly: true,
     secure: isProductionLogout,
-    sameSite: isProductionLogout ? "None" : "Lax",
+    sameSite: isProductionLogout ? 'None' : 'Lax',
     maxAge: 0,
   });
 

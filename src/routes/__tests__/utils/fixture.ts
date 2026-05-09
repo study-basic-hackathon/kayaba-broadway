@@ -1,17 +1,10 @@
-import { env } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
-import { sign } from "hono/jwt";
-import { ALG } from "../../../constants";
-import {
-  fields,
-  refreshTokens,
-  users,
-  products,
-  shops,
-  purchases,
-} from "../../../db/schema";
-import { hashPassword } from "../../../utils/hash";
+import { env } from 'cloudflare:workers';
+import { eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/d1';
+import { sign } from 'hono/jwt';
+import { ALG } from '../../../constants';
+import { fields, refreshTokens, users, products, shops, purchases } from '../../../db/schema';
+import { hashPassword } from '../../../utils/hash';
 
 export async function setupTestFixtures() {
   const user = await insertTestUser();
@@ -58,10 +51,9 @@ export async function insertTestFields(args?: {
   width?: number;
   height?: number;
 }) {
-  const name = args?.name ?? "test";
-  const description = args?.description ?? "テスト説明";
-  const background_url =
-    args?.background_url ?? "/assets/fields/kayaba-broadway.png";
+  const name = args?.name ?? 'test';
+  const description = args?.description ?? 'テスト説明';
+  const background_url = args?.background_url ?? '/assets/fields/kayaba-broadway.png';
   const width = args?.width ?? 1280;
   const height = args?.height ?? 720;
 
@@ -87,8 +79,8 @@ export async function insertTestShops(args: {
   position_x?: number;
   position_y?: number;
 }) {
-  const name = args?.name ?? "テスト店舗";
-  const description = args?.description ?? "テスト説明";
+  const name = args?.name ?? 'テスト店舗';
+  const description = args?.description ?? 'テスト説明';
   const position_x = args?.position_x ?? 100;
   const position_y = args?.position_y ?? 150;
 
@@ -115,12 +107,11 @@ export async function insertTestProducts(args: {
   file_url?: string;
   thumbnail_url?: string;
 }) {
-  const name = args?.name ?? "テスト同人誌";
-  const description = args?.description ?? "テスト説明";
+  const name = args?.name ?? 'テスト同人誌';
+  const description = args?.description ?? 'テスト説明';
   const price = args?.price ?? 500;
-  const file_url = args?.file_url ?? "r2://products/sample-vol1.pdf";
-  const thumbnail_url =
-    args?.thumbnail_url ?? "r2://thumbnails/sample-vol1.jpg";
+  const file_url = args?.file_url ?? 'r2://products/sample-vol1.pdf';
+  const thumbnail_url = args?.thumbnail_url ?? 'r2://thumbnails/sample-vol1.jpg';
 
   const db = drizzle(env.DB!);
   const [product] = await db
@@ -138,14 +129,10 @@ export async function insertTestProducts(args: {
   return product;
 }
 
-export async function insertTestUser(args?: {
-  email?: string;
-  password?: string;
-  display_name?: string;
-}) {
-  const email = args?.email ?? "test@example.com";
-  const password = args?.password ?? "password";
-  const display_name = args?.display_name ?? "testUser";
+export async function insertTestUser(args?: { email?: string; password?: string; display_name?: string }) {
+  const email = args?.email ?? 'test@example.com';
+  const password = args?.password ?? 'password';
+  const display_name = args?.display_name ?? 'testUser';
 
   const db = drizzle(env.DB!);
   const [user] = await db
@@ -162,19 +149,12 @@ export async function insertTestUser(args?: {
 
 export async function deleteTestUser(userId: string) {
   const db = drizzle(env.DB!);
-  await db.batch([
-    db.delete(refreshTokens).where(eq(refreshTokens.user_id, userId)),
-    db.delete(users).where(eq(users.id, userId)),
-  ]);
+  await db.batch([db.delete(refreshTokens).where(eq(refreshTokens.user_id, userId)), db.delete(users).where(eq(users.id, userId))]);
 }
 
 export async function isExistTestRefreshToken(userId: string) {
   const db = drizzle(env.DB!);
-  const existing = await db
-    .select()
-    .from(refreshTokens)
-    .where(eq(refreshTokens.user_id, userId))
-    .get();
+  const existing = await db.select().from(refreshTokens).where(eq(refreshTokens.user_id, userId)).get();
 
   return !!existing;
 }
