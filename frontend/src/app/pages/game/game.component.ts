@@ -20,6 +20,7 @@ import { Application, Assets, Text as PixiText, Rectangle, Sprite, Texture } fro
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
 import { ShopChatService } from '../../services/shop-chat.service';
+import { LiveKitService, type RemoveLiveKitListener } from '../../services/livekit.service';
 import { OshinagakiModalComponent } from '../oshinagaki-modal/oshinagaki-modal.component';
 
 interface Shop {
@@ -79,6 +80,8 @@ export class GameComponent implements OnInit, OnDestroy {
   private app!: Application;
   private player!: Sprite;
   private playerLabel!: PixiText;
+  private liveKit  = inject(LiveKitService);
+  private removeLiveKitListeners: RemoveLiveKitListener[] = [];
 
   private route = inject(ActivatedRoute);
   router = inject(Router);
