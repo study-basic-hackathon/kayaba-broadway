@@ -68,6 +68,7 @@ interface ProductsResponse {
 export class GameComponent implements OnInit, OnDestroy {
   @ViewChild('gameContainer', { static: true }) gameContainer!: ElementRef;
   @ViewChild('chatMessages') chatMessagesEl?: ElementRef<HTMLDivElement>;
+  @ViewChild('chatInput') chatInputEl?: ElementRef<HTMLInputElement>;
   @ViewChild('paymentElement') paymentElementRef!: ElementRef;
 
   private app!: Application;
@@ -82,6 +83,8 @@ export class GameComponent implements OnInit, OnDestroy {
   shopChatService = inject(ShopChatService);
 
   chatInputText = '';
+  // IME変換中フラグ（日本語入力の未確定状態を追跡）
+  private isComposing = false;
 
   // 店舗ゾーン判定用
   private shops: Shop[] = [];
@@ -177,12 +180,44 @@ export class GameComponent implements OnInit, OnDestroy {
     this.isChatInputFocused = false;
   }
 
-  sendChatMessage() {
-    const text = this.chatInputText.trim();
+  onCompositionStart() {
+    this.isComposing = true;
+  }
+
+  onCompositionEnd() {
+    this.isComposing = false;
+  }
+
+  onChatInputKeydown(event: KeyboardEvent) {
+    // IME変換中（未確定状態）の場合はEnterキーを無視
+    if (event.key === 'Enter' && !this.isComposing) {
+      event.preventDefault();
+      this.sendChatMessage();
+    }
+  }
+
+  sendChatMessage(fromButton: boolean = false) {
+    // ボタンクリック時は、IME変換中でも確定させて送信
+    if (fromButton && this.isComposing && this.chatInputEl) {
+      // IMEの確定を待つため、短い遅延を入れる
+      setTimeout(() => {
+        this.sendChatMessageInternal();
+      }, 50);
+      return;
+    }
+    this.sendChatMessageInternal();
+  }
+
+  private sendChatMessageInternal() {
+    // 入力フィールドから直接値を取得（ngModelより確実）
+    const text = (this.chatInputEl?.nativeElement.value || this.chatInputText).trim();
     if (!text) return;
     const sent = this.shopChatService.sendMessage(text);
     if (sent) {
       this.chatInputText = '';
+      if (this.chatInputEl) {
+        this.chatInputEl.nativeElement.value = '';
+      }
     }
   }
 

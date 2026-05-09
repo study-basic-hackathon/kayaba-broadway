@@ -46,17 +46,20 @@
           </div>
           <div class="chat-input-area">
             <input
+              #chatInput
               class="chat-input"
               type="text"
               [(ngModel)]="chatInputText"
-              (keydown.enter)="sendChatMessage()"
+              (keydown)="onChatInputKeydown($event)"
+              (compositionstart)="onCompositionStart()"
+              (compositionend)="onCompositionEnd()"
               (focus)="onChatInputFocus()"
               (blur)="onChatInputBlur()"
               placeholder="メッセージを入力..."
               maxlength="200"
               autocomplete="off"
             />
-            <button class="chat-send-btn" (click)="sendChatMessage()">送信</button>
+            <button class="chat-send-btn" (click)="sendChatMessage(true)">送信</button>
           </div>
         </div>
       }
