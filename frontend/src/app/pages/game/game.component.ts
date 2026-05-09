@@ -681,6 +681,16 @@ export class GameComponent implements OnInit, OnDestroy {
 
   // 他のプレイヤーをstageに追加する
   private addOtherPlayer(id: string, displayName: string, x: number, y: number) {
+    // 既に存在する場合は位置だけ更新して終了
+    const existing = this.otherPlayers.get(id);
+    if (existing) {
+      existing.graphics.x = x;
+      existing.graphics.y = y;
+      existing.label.x = x;
+      existing.label.y = y - 28;
+      return;
+    }
+
     // 他のプレイヤーを幽霊スプライトで表示
     const texture = this.getPlayerTexture('down', 0);
     const graphics = new Sprite(texture);
