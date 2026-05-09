@@ -5,4 +5,4 @@ LIVEKIT_API_KEY=devkey
 LIVEKIT_API_SECRET=secret-at-least-32-chars-long!!
 # ローカル:  ws://localhost:7880
 # 本番:     wss://your-app.livekit.cloud  or  wss://your.oracle.host:7880
-LIVEKIT_URL=ws://localhost:7880
+LIVEKIT_WS_URL=ws://localhost:7880
