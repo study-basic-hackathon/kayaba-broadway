@@ -312,7 +312,11 @@ export class GameComponent implements OnInit, OnDestroy {
     this.setPlayerInitialPosition();
 
     // 自分のプレイヤー表示
-    this.playerBaseTexture = await Assets.load('/assets/character/ghost.png');
+    const selectedCharacter = localStorage.getItem('selectedCharacter') ?? 'ghost';
+
+    this.playerBaseTexture = await Assets.load(
+      `/assets/character/${selectedCharacter}.png`
+    )
 
     const texture = this.getPlayerTexture('up', 0);
 

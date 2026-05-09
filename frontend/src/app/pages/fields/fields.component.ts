@@ -64,7 +64,7 @@ export class FieldsComponent implements OnInit {
     });
   }
   onClick(id: string) {
-    this.router.navigate(['/game', id]);
+    this.router.navigate(['/character-select', id]);
   }
 
   logout() {
