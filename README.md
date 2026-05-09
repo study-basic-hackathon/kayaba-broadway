@@ -84,6 +84,20 @@ npm run dev
 # ws://localhost:1999
 ```
 
+**Livekit**（ルートディレクトリ）:
+
+※ あらかじめdockerを使用できるようにしてください
+
+```bash
+npm run livekit:up
+```
+
+なお、LiveKit Serverを止める場合は
+
+```bash
+npm run livekit:down
+```
+
 ### VS Code から起動する場合
 
 `.vscode/launch.json` に起動設定が用意されている。VS Code の「実行とデバッグ」パネルから以下を選択して起動できる。
