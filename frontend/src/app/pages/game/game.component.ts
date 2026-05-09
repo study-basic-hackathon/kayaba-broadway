@@ -1,5 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import {
   ChangeDetectorRef,
   Component,
@@ -197,6 +198,8 @@ export class GameComponent implements OnInit, OnDestroy {
 
   private socket!: PartySocket;
   private otherPlayers = new Map<string, OtherPlayer>();
+  private isReconnecting = false;
+  private currentFieldId = '';
 
   // プレイヤーの初期位置（移動範囲の中央付近）
   private x = 0;
@@ -558,6 +561,7 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   private initSocket(fieldId: string) {
+    this.currentFieldId = fieldId;
     const token = this.auth.getAccessToken();
 
     this.socket = new PartySocket({
@@ -569,6 +573,13 @@ export class GameComponent implements OnInit, OnDestroy {
     // 接続確立直後に現在位置を送信して他のユーザーに自分の存在を知らせる
     this.socket.addEventListener('open', () => {
       this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y } }));
+    });
+
+    // 4001（Unauthorized）で切断された場合はトークンをリフレッシュして繋ぎ直す
+    this.socket.addEventListener('close', (event: CloseEvent) => {
+      if (event.code === 4001 && !this.isReconnecting) {
+        this.reconnectWithTokenRefresh();
+      }
     });
 
     this.socket.onmessage = (event) => {
@@ -630,6 +641,38 @@ export class GameComponent implements OnInit, OnDestroy {
         }
       }
     };
+  }
+
+  /** トークン期限切れ（4001）時にリフレッシュして再接続する */
+  private async reconnectWithTokenRefresh() {
+    this.isReconnecting = true;
+    try {
+      await firstValueFrom(this.auth.refresh());
+    } catch {
+      // リフレッシュ失敗（リフレッシュトークンも期限切れ等）→ ログアウトしてログイン画面へ
+      this.ngZone.run(async () => {
+        await this.auth.logout();
+        this.router.navigate(['/login']);
+      });
+      return;
+    } finally {
+      this.isReconnecting = false;
+    }
+
+    // 既存の他プレイヤー表示をクリア（再接続後の init で再描画される）
+    this.clearOtherPlayers();
+    // 古い socket を閉じてから新しいトークンで繋ぎ直す
+    this.socket?.close();
+    this.initSocket(this.currentFieldId);
+  }
+
+  /** otherPlayers をステージから全削除してMapをクリアする */
+  private clearOtherPlayers() {
+    for (const p of this.otherPlayers.values()) {
+      this.app.stage.removeChild(p.graphics);
+      this.app.stage.removeChild(p.label);
+    }
+    this.otherPlayers.clear();
   }
 
   // 他のプレイヤーをstageに追加する
