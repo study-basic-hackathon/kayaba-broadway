@@ -7,9 +7,9 @@
     "test": "vitest run",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "format": "prettier --write \"src/**/*.{ts,js}\"",
-    "livekit:up": "docker-compose up -d",
-    "livekit:down": "docker-compose down",
-    "livekit:logs": "docker-compose logs -f livekit"
+    "livekit:up": "docker compose up -d",
+    "livekit:down": "docker compose down",
+    "livekit:logs": "docker compose logs -f livekit"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
