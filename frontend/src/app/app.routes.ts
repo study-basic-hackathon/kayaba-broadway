@@ -4,6 +4,7 @@ import { LoginComponent } from './pages/login/login.component';
 import { FieldComponent } from './pages/field/field.component';
 import { FieldsComponent } from './pages/fields/fields.component';
 import { GameComponent } from './pages/game/game.component';
+import { CharacterSelectComponent } from './pages/character-select/character-select.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -16,6 +17,7 @@ export const routes: Routes = [
     children: [
       { path: 'field', component: FieldComponent },
       { path: 'fields', component: FieldsComponent },
+      { path: 'character-select/:fieldId', component: CharacterSelectComponent },
       { path: 'game/:fieldId', component: GameComponent },
     ],
   },
