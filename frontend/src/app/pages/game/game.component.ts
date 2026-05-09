@@ -58,6 +58,11 @@ interface ProductsResponse {
   products: Product[];
 }
 
+interface LivekitConnectionInfoResponse {
+  token: string;
+  livekit_ws_url: string;
+}
+
 @Component({
   selector: 'app-game',
   standalone: true,
@@ -117,6 +122,13 @@ export class GameComponent implements OnInit, OnDestroy {
         // チャットはスマホのみ閉じた状態にリセット
         this.isChatOpen = !this.isMobile;
 
+        this.http
+          .get<LivekitConnectionInfoResponse>(`${environment.apiBaseUrl}/shops/${shop.id}/livekit/token`)
+          .subscribe({
+            next: (data) => {
+              console.log(data);
+            },
+          });
         this.http
           .get<ProductsResponse>(`${environment.apiBaseUrl}/shops/${shop.id}/products`)
           .subscribe({

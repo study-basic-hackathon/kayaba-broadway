@@ -73,7 +73,7 @@ router.get('/:id/livekit/token', async (c) => {
 
   return c.json({
     token: jwt,
-    url: c.env.LIVEKIT_WS_URL,
+    livekit_ws_url: c.env.LIVEKIT_WS_URL,
   });
 });
 
