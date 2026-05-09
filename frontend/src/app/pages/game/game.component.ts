@@ -199,8 +199,8 @@ export class GameComponent implements OnInit, OnDestroy {
   private otherPlayers = new Map<string, OtherPlayer>();
 
   // プレイヤーの初期位置（移動範囲の中央付近）
-  private x = 896;
-  private y = 736;
+  private x = 0;
+  private y = 0;
 
   // タイル1枚のサイズ（roguelikeSheet_transparent.tsxの tilewidth/tileheight から取得）
   private tileSize = 16;
@@ -229,14 +229,27 @@ export class GameComponent implements OnInit, OnDestroy {
   private playerBaseTexture!: Texture;
   private playerFrameWidth = 32;
   private playerFrameHeight = 32;
-  private playerDirection: 'down' | 'left' | 'right' | 'up' = 'down';
+  private playerDirection: 'down' | 'left' | 'right' | 'up' = 'up';
   private playerFrame = 0;
   private animationCounter = 0;
   private animationSpeed = 16; // 数値が大きいほどプレイヤーアニメーションがゆっくりになる
   private walkFrameCount = 3;
 
-  private tileScaled = this.tileSize * this.scale;
   private hitCharacter = (this.tileSize * this.scale) / 2;
+
+  private get tileScaled() {
+    return this.tileSize * this.scale;
+  }
+  private get mapWidthPx() {
+    return this.mapCols * this.tileScaled;
+  }
+  private get mapHeightPx() {
+    return this.mapRows * this.tileScaled;
+  }
+  private setPlayerInitialPosition() {
+    this.x = this.mapWidthPx / 2;
+    this.y = this.mapHeightPx - 50;
+  }
 
   // タッチ操作用：スワイプ開始位置
   private touchStartX = 0;
@@ -293,10 +306,12 @@ export class GameComponent implements OnInit, OnDestroy {
     // タイルマップを描画
     await this.loadMap();
 
+    this.setPlayerInitialPosition();
+
     // 自分のプレイヤー表示
     this.playerBaseTexture = await Assets.load('/assets/character/ghost.png');
 
-    const texture = this.getPlayerTexture('down', 0);
+    const texture = this.getPlayerTexture('up', 0);
 
     this.player = new Sprite(texture);
     this.player.anchor.set(0.5);
