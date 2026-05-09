@@ -1,0 +1,23 @@
+name = "gather-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ============================================================
+# ローカル開発
+# ============================================================
+[env.local]
+name = "gather-api-local"
+
+# ローカル用シークレットは .dev.vars に記述 (gitignore 済み)
+# LIVEKIT_API_KEY = "devkey"
+# LIVEKIT_API_SECRET = "secret-at-least-32-chars-long!!"
+
+# ============================================================
+# 本番デプロイ (wrangler deploy)
+# シークレットは: wrangler secret put LIVEKIT_API_KEY
+#               wrangler secret put LIVEKIT_API_SECRET
+# ============================================================
+[vars]
+# 非秘密の設定値はここに書いてもよい
+APP_ENV = "production"

@@ -1,0 +1,21 @@
+{
+  "name": "@gather/api",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev --env local",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "deploy": "wrangler deploy",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.7.4",
+    "livekit-server-sdk": "^2.9.0",
+    "@gather/shared": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250214.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.109.2"
+  }
+}
