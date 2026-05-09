@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
 import { shops, products } from '../db/schema';
 import { type AppType } from '../types';
-import { AccessToken } from 'livekit-server-sdk';
+import { SignJWT } from 'jose';
 
 const router = new Hono<AppType>();
 
@@ -40,22 +40,40 @@ router.get('/:id/products', async (c) => {
   return c.json({ products: productsRecord });
 });
 
-router.get("/:id/livekit/token", async (c) => {
+router.get('/:id/livekit/token', async (c) => {
   const { id: shopId } = c.req.param();
 
-  const identity = "userId";
+  const identity = 'userId';
+  const roomName = `shop-${shopId}`;
 
-  const apiKey    = c.env.LIVEKIT_API_KEY;
+  const apiKey = c.env.LIVEKIT_API_KEY;
   const apiSecret = c.env.LIVEKIT_API_SECRET;
 
-  // ApiKey/Secretは wrangler.toml の [vars] や Secrets から取得
-  const at = new AccessToken(apiKey, apiSecret, {identity: identity});
+  const secretBytes = new TextEncoder().encode(apiSecret);
+  const key = await crypto.subtle.importKey('raw', secretBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
 
-  at.addGrant({ roomJoin: true, room: `shop-${shopId}`, canPublish: true, canSubscribe: true });
+  const now = Math.floor(Date.now() / 1000);
+
+  const jwt = await new SignJWT({
+    // LiveKit 固有の claims
+    video: {
+      roomJoin: true,
+      room: roomName,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true,
+    },
+  })
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .setIssuer(apiKey)
+    .setSubject(identity)
+    .setIssuedAt(now)
+    .setExpirationTime(now + 60 * 30) // 30分
+    .sign(key);
 
   return c.json({
-    token: await at.toJwt(),
-    url: c.env.LIVEKIT_WS_URL // ここでURLも返すとフロントの管理が楽です
+    token: jwt,
+    url: c.env.LIVEKIT_WS_URL,
   });
 });
 
