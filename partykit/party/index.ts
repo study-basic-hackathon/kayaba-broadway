@@ -9,6 +9,7 @@ type UserState = {
   displayName: string;
   x: number;
   y: number;
+  characterId: string;
 };
 
 const FIELD_MIN_X = 0;
@@ -32,7 +33,7 @@ function isValidCoordinate(
 // フロントエンド → Partykit
 type MoveMessage = {
   message_type: "move";
-  data: { x: number; y: number };
+  data: { x: number; y: number; characterId?: string };
 };
 type ChatSendMessage = {
   message_type: "chat";
@@ -42,9 +43,9 @@ type ChatSendMessage = {
 // Partykit → フロントエンド
 type MoveBroadcastMessage = {
   message_type: "move";
-  data: { userId: string; x: number; y: number };
+  data: { userId: string; x: number; y: number; characterId: string };
 };
-type JoinMessage = { message_type: "join"; data: { userId: string; displayName: string; x: number; y: number } };
+type JoinMessage = { message_type: "join"; data: { userId: string; displayName: string; x: number; y: number; characterId: string; } };
 type LeaveMessage = { message_type: "leave"; data: { userId: string } };
 type InitMessage = { message_type: "init"; data: { users: UserState[] } };
 type BroadcastMessage = MoveBroadcastMessage | JoinMessage | LeaveMessage;
@@ -181,7 +182,13 @@ export default class FieldRoom implements Party.Server {
     return url.searchParams.get("token");
   }
 
+  private getCharacterIdFromConnectionRequest(request: Request): string {
+    const url = new URL(request.url);
+    return url.searchParams.get("characterId") ?? "ghost";
+  }
+
   async onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
+    const characterId = this.getCharacterIdFromConnectionRequest(ctx.request);
     const token = this.getTokenFromConnectionRequest(ctx.request);
 
     // JWT 検証
@@ -204,7 +211,8 @@ export default class FieldRoom implements Party.Server {
     const hadExistingConnection = existingUserState !== undefined;
 
     // 同一 userId の複数接続では同じ UserState を共有し、座標の正本を 1 つに保つ
-    const userState: UserState = existingUserState ?? { userId, displayName, x: 0, y: 0 };
+    const userState: UserState = existingUserState ?? { userId, displayName, x: 0, y: 0, characterId, };
+    userState.characterId = characterId;
     this.users.set(conn.id, userState);
 
     // 接続したユーザーに現在の全ユーザー位置を返す（同一 userId は重複除外し、自分自身は除く）
@@ -223,7 +231,7 @@ export default class FieldRoom implements Party.Server {
 
     // その userId の最初の接続時のみ、他のユーザー全員に join を通知
     if (!hadExistingConnection) {
-      const joinMessage: JoinMessage = { message_type: "join", data: { userId, displayName, x: userState.x, y: userState.y } };
+      const joinMessage: JoinMessage = { message_type: "join", data: { userId, displayName, x: userState.x, y: userState.y, characterId: userState.characterId, } };
       this.room.broadcast(JSON.stringify(joinMessage), [conn.id]);
     }
   }
@@ -269,10 +277,14 @@ export default class FieldRoom implements Party.Server {
           user.x = msg.data.x;
           user.y = msg.data.y;
 
+          if (typeof msg.data.characterId === "string" && msg.data.characterId.length > 0) {
+            user.characterId = msg.data.characterId;
+          }
+
           // 送信者以外の全員にブロードキャスト
           const broadcastMsg: BroadcastMessage = {
             message_type: "move",
-            data: { userId: user.userId, x: msg.data.x, y: msg.data.y },
+            data: { userId: user.userId, x: msg.data.x, y: msg.data.y, characterId: user.characterId, },
           };
           this.room.broadcast(JSON.stringify(broadcastMsg), [sender.id]);
         }

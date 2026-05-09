@@ -39,6 +39,8 @@ interface OtherPlayer {
   direction: 'down' | 'left' | 'right' | 'up';
   frame: number;
   animationCounter: number;
+  characterId: string;
+  baseTexture: Texture;
 }
 
 interface Product {
@@ -198,6 +200,7 @@ export class GameComponent implements OnInit, OnDestroy {
 
   private socket!: PartySocket;
   private otherPlayers = new Map<string, OtherPlayer>();
+  private selectedCharacter = localStorage.getItem('selectedCharacter') ?? 'ghost';
   private isReconnecting = false;
   private currentFieldId = '';
 
@@ -346,9 +349,10 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   //キャラクタースプライトシートを区切って出力
-  private getPlayerTexture(
+  private getCharacterTexture(
+    baseTexture: Texture,
     direction: 'down' | 'left' | 'right' | 'up',
-    frameIndex: number,
+    frameIndex: number
   ): Texture {
     const directionRows = {
       down: 0,
@@ -356,18 +360,23 @@ export class GameComponent implements OnInit, OnDestroy {
       right: 2,
       up: 3,
     } as const;
-
     const row = directionRows[direction];
-
     return new Texture({
-      source: this.playerBaseTexture.source,
+      source: baseTexture.source,
       frame: new Rectangle(
         frameIndex * this.playerFrameWidth,
         row * this.playerFrameHeight,
         this.playerFrameWidth,
-        this.playerFrameHeight,
+        this.playerFrameHeight
       ),
     });
+  }
+
+  private getPlayerTexture(
+    direction: 'down' | 'left' | 'right' | 'up',
+    frameIndex: number
+  ): Texture {
+    return this.getCharacterTexture(this.playerBaseTexture, direction, frameIndex);
   }
 
   private async loadMap() {
@@ -571,12 +580,12 @@ export class GameComponent implements OnInit, OnDestroy {
     this.socket = new PartySocket({
       host: environment.partykitHost,
       room: fieldId,
-      ...(token ? { query: { token } } : {}),
+      ...(token ? { query: { token, characterId: this.selectedCharacter, } } : {}),
     });
 
     // 接続確立直後に現在位置を送信して他のユーザーに自分の存在を知らせる
     this.socket.addEventListener('open', () => {
-      this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y } }));
+      this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y, characterId: this.selectedCharacter, } }));
     });
 
     // 4001（Unauthorized）で切断された場合はトークンをリフレッシュして繋ぎ直す
@@ -593,13 +602,13 @@ export class GameComponent implements OnInit, OnDestroy {
         // 接続時：既存プレイヤーを全員表示
         case 'init':
           for (const u of msg.data.users) {
-            this.addOtherPlayer(u.userId, u.displayName, u.x, u.y);
+            this.addOtherPlayer(u.userId, u.displayName, u.x, u.y, u.characterId ?? 'ghost');
           }
           break;
 
         // 誰かが入室：その人を表示
         case 'join':
-          this.addOtherPlayer(msg.data.userId, msg.data.displayName, msg.data.x, msg.data.y);
+          this.addOtherPlayer(msg.data.userId, msg.data.displayName, msg.data.x, msg.data.y, msg.data.characterId ?? 'ghost');
           break;
 
         // 誰かが移動：その人の位置を更新
@@ -622,7 +631,7 @@ export class GameComponent implements OnInit, OnDestroy {
                 p.animationCounter = 0;
                 p.frame = (p.frame + 1) % this.walkFrameCount;
               }
-              p.graphics.texture = this.getPlayerTexture(p.direction, p.frame);
+              p.graphics.texture = this.getCharacterTexture(p.baseTexture, p.direction, p.frame);
             }
 
             p.graphics.x = msg.data.x;
@@ -680,35 +689,42 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   // 他のプレイヤーをstageに追加する
-  private addOtherPlayer(id: string, displayName: string, x: number, y: number) {
-    // 既に存在する場合は位置だけ更新して終了
+  private async addOtherPlayer(
+    id: string,
+    displayName: string,
+    x: number,
+    y: number,
+    characterId = 'ghost',
+  ) {
     const existing = this.otherPlayers.get(id);
     if (existing) {
       existing.graphics.x = x;
       existing.graphics.y = y;
       existing.label.x = x;
       existing.label.y = y - 28;
+      if (existing.characterId !== characterId) {
+        const baseTexture = await Assets.load(`/assets/character/${characterId}.png`);
+        existing.characterId = characterId;
+        existing.baseTexture = baseTexture;
+        existing.graphics.texture = this.getCharacterTexture(baseTexture, existing.direction, existing.frame);
+      }
       return;
     }
-
-    // 他のプレイヤーを幽霊スプライトで表示
-    const texture = this.getPlayerTexture('down', 0);
+    const baseTexture = await Assets.load(`/assets/character/${characterId}.png`);
+    const texture = this.getCharacterTexture(baseTexture, 'down', 0);
     const graphics = new Sprite(texture);
     graphics.anchor.set(0.5);
     graphics.width = this.tileScaled;
     graphics.height = this.tileScaled;
     graphics.x = x;
     graphics.y = y;
-
-    // display_nameをラベルとして表示
     const label = new PixiText({
       text: displayName,
       style: { fontSize: 12, fill: 0xffffff },
     });
     label.x = x;
-    label.y = y - 28; // プレイヤーの上に表示
-    label.anchor.set(0.5); // ラベルを中央揃え
-
+    label.y = y - 28;
+    label.anchor.set(0.5);
     this.app.stage.addChild(graphics);
     this.app.stage.addChild(label);
     this.otherPlayers.set(id, {
@@ -719,6 +735,8 @@ export class GameComponent implements OnInit, OnDestroy {
       direction: 'down',
       frame: 0,
       animationCounter: 0,
+      characterId,
+      baseTexture,
     });
   }
 
@@ -815,7 +833,7 @@ export class GameComponent implements OnInit, OnDestroy {
 
       this.player.texture = this.getPlayerTexture(this.playerDirection, this.playerFrame);
 
-      this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y } }));
+      this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y, characterId: this.selectedCharacter, } }));
     } else {
       this.playerFrame = 0;
       this.animationCounter = 0;
