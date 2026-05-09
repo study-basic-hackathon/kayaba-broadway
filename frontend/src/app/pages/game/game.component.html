@@ -5,7 +5,11 @@
       <div class="shop-header">
         <span class="shop-name">🏪 {{ currentShop()!.name }}</span>
         @if (isMobile) {
-          <button class="chat-toggle-btn" (click)="toggleChat()" [attr.aria-label]="isChatOpen ? 'チャットを閉じる' : 'チャットを開く'">
+          <button
+            class="chat-toggle-btn"
+            (click)="toggleChat()"
+            [attr.aria-label]="isChatOpen ? 'チャットを閉じる' : 'チャットを開く'"
+          >
             {{ isChatOpen ? '✕ 閉じる' : '💬 チャット' }}
             @if (!isChatOpen && unreadCount > 0) {
               <span class="chat-badge">{{ unreadCount }}</span>

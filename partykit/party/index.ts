@@ -1,4 +1,4 @@
-import type * as Party from "partykit/server";
+import type * as Party from 'partykit/server';
 
 // ────────────────────────────────────────────
 // 型定義
@@ -17,37 +17,28 @@ const FIELD_MAX_X = 5000;
 const FIELD_MIN_Y = 0;
 const FIELD_MAX_Y = 5000;
 
-function isValidCoordinate(
-  value: unknown,
-  min: number,
-  max: number,
-): value is number {
-  return (
-    typeof value === "number" &&
-    Number.isFinite(value) &&
-    value >= min &&
-    value <= max
-  );
+function isValidCoordinate(value: unknown, min: number, max: number): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max;
 }
 
 // フロントエンド → Partykit
 type MoveMessage = {
-  message_type: "move";
+  message_type: 'move';
   data: { x: number; y: number; characterId?: string };
 };
 type ChatSendMessage = {
-  message_type: "chat";
+  message_type: 'chat';
   data: { text: string };
 };
 
 // Partykit → フロントエンド
 type MoveBroadcastMessage = {
-  message_type: "move";
+  message_type: 'move';
   data: { userId: string; x: number; y: number; characterId: string };
 };
-type JoinMessage = { message_type: "join"; data: { userId: string; displayName: string; x: number; y: number; characterId: string; } };
-type LeaveMessage = { message_type: "leave"; data: { userId: string } };
-type InitMessage = { message_type: "init"; data: { users: UserState[] } };
+type JoinMessage = { message_type: 'join'; data: { userId: string; displayName: string; x: number; y: number; characterId: string } };
+type LeaveMessage = { message_type: 'leave'; data: { userId: string } };
+type InitMessage = { message_type: 'init'; data: { users: UserState[] } };
 type BroadcastMessage = MoveBroadcastMessage | JoinMessage | LeaveMessage;
 
 type ChatEntry = {
@@ -57,11 +48,11 @@ type ChatEntry = {
   timestamp: number;
 };
 type ChatBroadcastMessage = {
-  message_type: "chat";
+  message_type: 'chat';
   data: ChatEntry;
 };
 type ChatHistoryMessage = {
-  message_type: "chat_history";
+  message_type: 'chat_history';
   data: { messages: ChatEntry[] };
 };
 
@@ -70,9 +61,9 @@ type ChatHistoryMessage = {
 // ────────────────────────────────────────────
 
 function decodeBase64UrlToBytes(value: string): Uint8Array {
-  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
   const remainder = base64.length % 4;
-  const padded = remainder === 0 ? base64 : base64 + "=".repeat(4 - remainder);
+  const padded = remainder === 0 ? base64 : base64 + '='.repeat(4 - remainder);
   const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
@@ -81,12 +72,9 @@ function decodeBase64UrlToBytes(value: string): Uint8Array {
   return bytes;
 }
 
-async function verifyJwt(
-  token: string,
-  secret: string
-): Promise<{ id: string; displayName: string } | null> {
+async function verifyJwt(token: string, secret: string): Promise<{ id: string; displayName: string } | null> {
   try {
-    const parts = token.split(".");
+    const parts = token.split('.');
     if (parts.length !== 3) return null;
 
     const [headerB64, payloadB64, signatureB64] = parts;
@@ -94,39 +82,26 @@ async function verifyJwt(
 
     const enc = new TextEncoder();
     const keyData = enc.encode(secret);
-    const key = await crypto.subtle.importKey(
-      "raw",
-      keyData,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["verify"]
-    );
+    const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
 
     const data = enc.encode(`${headerB64}.${payloadB64}`);
     const signature = decodeBase64UrlToBytes(signatureB64);
 
-    const valid = await crypto.subtle.verify("HMAC", key, signature, data);
+    const valid = await crypto.subtle.verify('HMAC', key, signature, data);
     if (!valid) return null;
 
-    const payload = JSON.parse(new TextDecoder().decode(decodeBase64UrlToBytes(payloadB64))) as Record<
-      string,
-      unknown
-    >;
+    const payload = JSON.parse(new TextDecoder().decode(decodeBase64UrlToBytes(payloadB64))) as Record<string, unknown>;
 
     // 有効期限チェック
-    if (
-      typeof payload.exp === "number" &&
-      payload.exp < Math.floor(Date.now() / 1000)
-    ) {
+    if (typeof payload.exp === 'number' && payload.exp < Math.floor(Date.now() / 1000)) {
       return null;
     }
 
-    if (typeof payload.id !== "string" || payload.id.length === 0) {
+    if (typeof payload.id !== 'string' || payload.id.length === 0) {
       return null;
     }
 
-    const displayName =
-      typeof payload.display_name === "string" ? payload.display_name : payload.id.slice(0, 6);
+    const displayName = typeof payload.display_name === 'string' ? payload.display_name : payload.id.slice(0, 6);
 
     return { id: payload.id, displayName };
   } catch {
@@ -179,12 +154,12 @@ export default class FieldRoom implements Party.Server {
 
   private getTokenFromConnectionRequest(request: Request): string | null {
     const url = new URL(request.url);
-    return url.searchParams.get("token");
+    return url.searchParams.get('token');
   }
 
   private getCharacterIdFromConnectionRequest(request: Request): string {
     const url = new URL(request.url);
-    return url.searchParams.get("characterId") ?? "ghost";
+    return url.searchParams.get('characterId') ?? 'ghost';
   }
 
   async onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
@@ -193,15 +168,15 @@ export default class FieldRoom implements Party.Server {
 
     // JWT 検証
     const secret = this.room.env.JWT_SECRET;
-    if (typeof secret !== "string" || secret.length === 0) {
-      conn.close(1011, "サーバー設定エラー: JWT_SECRET が未設定です");
+    if (typeof secret !== 'string' || secret.length === 0) {
+      conn.close(1011, 'サーバー設定エラー: JWT_SECRET が未設定です');
       return;
     }
 
     const payload = token ? await verifyJwt(token, secret) : null;
 
     if (!payload) {
-      conn.close(4001, "Unauthorized");
+      conn.close(4001, 'Unauthorized');
       return;
     }
 
@@ -211,27 +186,30 @@ export default class FieldRoom implements Party.Server {
     const hadExistingConnection = existingUserState !== undefined;
 
     // 同一 userId の複数接続では同じ UserState を共有し、座標の正本を 1 つに保つ
-    const userState: UserState = existingUserState ?? { userId, displayName, x: 0, y: 0, characterId, };
+    const userState: UserState = existingUserState ?? { userId, displayName, x: 0, y: 0, characterId };
     userState.characterId = characterId;
     this.users.set(conn.id, userState);
 
     // 接続したユーザーに現在の全ユーザー位置を返す（同一 userId は重複除外し、自分自身は除く）
     const initMessage: InitMessage = {
-      message_type: "init",
+      message_type: 'init',
       data: { users: this.listUniqueUsers(userId) },
     };
     conn.send(JSON.stringify(initMessage));
 
     // チャット履歴を送信
     const historyMsg: ChatHistoryMessage = {
-      message_type: "chat_history",
+      message_type: 'chat_history',
       data: { messages: this.chatHistory },
     };
     conn.send(JSON.stringify(historyMsg));
 
     // その userId の最初の接続時のみ、他のユーザー全員に join を通知
     if (!hadExistingConnection) {
-      const joinMessage: JoinMessage = { message_type: "join", data: { userId, displayName, x: userState.x, y: userState.y, characterId: userState.characterId, } };
+      const joinMessage: JoinMessage = {
+        message_type: 'join',
+        data: { userId, displayName, x: userState.x, y: userState.y, characterId: userState.characterId },
+      };
       this.room.broadcast(JSON.stringify(joinMessage), [conn.id]);
     }
   }
@@ -240,11 +218,11 @@ export default class FieldRoom implements Party.Server {
     try {
       const msg = JSON.parse(message) as MoveMessage | ChatSendMessage;
 
-      if (msg.message_type === "chat") {
+      if (msg.message_type === 'chat') {
         const user = this.users.get(sender.id);
         if (!user) return;
 
-        const text = typeof msg.data.text === "string" ? msg.data.text.trim() : "";
+        const text = typeof msg.data.text === 'string' ? msg.data.text.trim() : '';
         if (text.length === 0 || text.length > 200) return;
 
         const entry: ChatEntry = {
@@ -258,18 +236,15 @@ export default class FieldRoom implements Party.Server {
           this.chatHistory.shift();
         }
 
-        const broadcastMsg: ChatBroadcastMessage = { message_type: "chat", data: entry };
+        const broadcastMsg: ChatBroadcastMessage = { message_type: 'chat', data: entry };
         this.room.broadcast(JSON.stringify(broadcastMsg));
         return;
       }
 
-      if (msg.message_type === "move") {
+      if (msg.message_type === 'move') {
         const user = this.users.get(sender.id);
         if (user) {
-          if (
-            !isValidCoordinate(msg.data.x, FIELD_MIN_X, FIELD_MAX_X) ||
-            !isValidCoordinate(msg.data.y, FIELD_MIN_Y, FIELD_MAX_Y)
-          ) {
+          if (!isValidCoordinate(msg.data.x, FIELD_MIN_X, FIELD_MAX_X) || !isValidCoordinate(msg.data.y, FIELD_MIN_Y, FIELD_MAX_Y)) {
             return;
           }
 
@@ -277,14 +252,14 @@ export default class FieldRoom implements Party.Server {
           user.x = msg.data.x;
           user.y = msg.data.y;
 
-          if (typeof msg.data.characterId === "string" && msg.data.characterId.length > 0) {
+          if (typeof msg.data.characterId === 'string' && msg.data.characterId.length > 0) {
             user.characterId = msg.data.characterId;
           }
 
           // 送信者以外の全員にブロードキャスト
           const broadcastMsg: BroadcastMessage = {
-            message_type: "move",
-            data: { userId: user.userId, x: msg.data.x, y: msg.data.y, characterId: user.characterId, },
+            message_type: 'move',
+            data: { userId: user.userId, x: msg.data.x, y: msg.data.y, characterId: user.characterId },
           };
           this.room.broadcast(JSON.stringify(broadcastMsg), [sender.id]);
         }
@@ -301,7 +276,7 @@ export default class FieldRoom implements Party.Server {
 
       // 同一 userId の接続がすべて閉じたときだけ leave を通知
       if (!this.hasUserConnection(user.userId)) {
-        const leaveMessage: LeaveMessage = { message_type: "leave", data: { userId: user.userId } };
+        const leaveMessage: LeaveMessage = { message_type: 'leave', data: { userId: user.userId } };
         this.room.broadcast(JSON.stringify(leaveMessage));
       }
     }

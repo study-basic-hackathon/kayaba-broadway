@@ -1,8 +1,8 @@
-import { env } from "cloudflare:workers";
-import app from "../../index";
-import { setupTestFixtures, cleanupTestFixtures } from "./utils/fixture";
-import { users } from "../../db/schema";
-import { InferSelectModel } from "drizzle-orm";
+import { env } from 'cloudflare:workers';
+import app from '../../index';
+import { setupTestFixtures, cleanupTestFixtures } from './utils/fixture';
+import { users } from '../../db/schema';
+import { InferSelectModel } from 'drizzle-orm';
 
 let userFixture: InferSelectModel<typeof users>;
 let accessTokenFixture: string;
@@ -21,12 +21,12 @@ afterAll(async () => {
   await cleanupTestFixtures();
 });
 
-describe("GET:/users/me", () => {
-  test("正常系", async () => {
+describe('GET:/users/me', () => {
+  test('正常系', async () => {
     const res = await app.request(
-      "users/me",
+      'users/me',
       {
-        method: "GET",
+        method: 'GET',
         headers: {
           Authorization: `Bearer ${accessTokenFixture}`,
         },
@@ -39,19 +39,19 @@ describe("GET:/users/me", () => {
     expect(data.user.email).toBe(userFixture.email);
   });
 
-  test("異常系:アクセストークン未指定の場合401エラー", async () => {
-    const res = await app.request("/users/me", { method: "GET" }, env);
+  test('異常系:アクセストークン未指定の場合401エラー', async () => {
+    const res = await app.request('/users/me', { method: 'GET' }, env);
     expect(res.status).toBe(401);
   });
 
-  test("異常系:アクセストークンの有効期限切れの場合401エラー", async () => {
+  test('異常系:アクセストークンの有効期限切れの場合401エラー', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(Date.now() + 1000 * 60 * 15);
 
     const res = await app.request(
-      "/users/me",
+      '/users/me',
       {
-        method: "GET",
+        method: 'GET',
         headers: {
           Authorization: `Bearer ${accessTokenFixture}`,
         },

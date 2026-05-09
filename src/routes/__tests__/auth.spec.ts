@@ -1,20 +1,16 @@
-import { decode } from "hono/jwt";
-import auth from "../auth";
-import {
-  insertTestUser,
-  deleteTestUser,
-  isExistTestRefreshToken,
-} from "./utils/fixture";
-import { env } from "cloudflare:workers";
-import * as paymentService from "@/services/payment";
+import { decode } from 'hono/jwt';
+import auth from '../auth';
+import { insertTestUser, deleteTestUser, isExistTestRefreshToken } from './utils/fixture';
+import { env } from 'cloudflare:workers';
+import * as paymentService from '@/services/payment';
 
 function registerRequest(body: object) {
   return auth.request(
-    "/register",
+    '/register',
     {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
     },
@@ -24,11 +20,11 @@ function registerRequest(body: object) {
 
 function loginRequest(body: object) {
   return auth.request(
-    "/login",
+    '/login',
     {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
     },
@@ -38,11 +34,11 @@ function loginRequest(body: object) {
 
 function accessTokenRefreshRequest(refreshToken: string) {
   return auth.request(
-    "/refresh",
+    '/refresh',
     {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         Cookie: `refreshToken=${refreshToken}`,
       },
     },
@@ -51,10 +47,10 @@ function accessTokenRefreshRequest(refreshToken: string) {
 }
 
 beforeEach(() => {
-  vi.spyOn(paymentService, "fetchUserPayment").mockResolvedValue(undefined);
-  vi.spyOn(paymentService, "createStripeCustomer").mockResolvedValue({
-    id: "cus_test123",
-    email: "test@example.com",
+  vi.spyOn(paymentService, 'fetchUserPayment').mockResolvedValue(undefined);
+  vi.spyOn(paymentService, 'createStripeCustomer').mockResolvedValue({
+    id: 'cus_test123',
+    email: 'test@example.com',
   } as any);
 });
 
@@ -62,13 +58,13 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("POST:/register", () => {
-  test("正常系", async () => {
+describe('POST:/register', () => {
+  test('正常系', async () => {
     const res = await registerRequest({
-      display_name: "testUser",
-      email: "test@example.com",
-      password: "password",
-      confirm_password: "password",
+      display_name: 'testUser',
+      email: 'test@example.com',
+      password: 'password',
+      confirm_password: 'password',
     });
 
     expect(res.status).toBe(200);
@@ -76,12 +72,12 @@ describe("POST:/register", () => {
     await deleteTestUser(user.id);
   });
 
-  test("異常系:メールアドレスが登録済みの場合重複エラー", async () => {
+  test('異常系:メールアドレスが登録済みの場合重複エラー', async () => {
     const registerBody = {
-      display_name: "dupUser",
-      email: "dup@example.com",
-      password: "password",
-      confirm_password: "password",
+      display_name: 'dupUser',
+      email: 'dup@example.com',
+      password: 'password',
+      confirm_password: 'password',
     };
 
     const firstRes = await registerRequest(registerBody);
@@ -94,10 +90,10 @@ describe("POST:/register", () => {
   });
 });
 
-describe("POST:/login", () => {
-  test("正常系:accessTokenが返ってくる", async () => {
-    const email = "test@example.com";
-    const password = "password";
+describe('POST:/login', () => {
+  test('正常系:accessTokenが返ってくる', async () => {
+    const email = 'test@example.com';
+    const password = 'password';
     const user = await insertTestUser({ email, password });
     const res = await loginRequest({
       email,
@@ -111,9 +107,9 @@ describe("POST:/login", () => {
     await deleteTestUser(user.id);
   });
 
-  test("正常系:refreshTokenがCookieにセットされる", async () => {
-    const email = "test@example.com";
-    const password = "password";
+  test('正常系:refreshTokenがCookieにセットされる', async () => {
+    const email = 'test@example.com';
+    const password = 'password';
     const user = await insertTestUser({ email, password });
     const res = await loginRequest({
       email,
@@ -121,32 +117,32 @@ describe("POST:/login", () => {
     });
     expect(res.status).toBe(200);
 
-    const setCookieHeader = res.headers.get("Set-Cookie");
-    expect(setCookieHeader).toContain("refreshToken=");
+    const setCookieHeader = res.headers.get('Set-Cookie');
+    expect(setCookieHeader).toContain('refreshToken=');
 
     await deleteTestUser(user.id);
   });
 
-  test("異常系:存在しないユーザの場合認証失敗", async () => {
+  test('異常系:存在しないユーザの場合認証失敗', async () => {
     const res = await loginRequest({
-      email: "nouser@example.com",
-      password: "password",
+      email: 'nouser@example.com',
+      password: 'password',
     });
 
     const { error } = (await res.json()) as { error: string };
     expect(res.status).toBe(401);
-    expect(error).toBe("メールアドレスまたはパスワードが違います");
+    expect(error).toBe('メールアドレスまたはパスワードが違います');
   });
 });
 
-describe("POST:/refresh", () => {
+describe('POST:/refresh', () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  test("正常系", async () => {
-    const email = "test@example.com";
-    const password = "password";
+  test('正常系', async () => {
+    const email = 'test@example.com';
+    const password = 'password';
     const user = await insertTestUser({ email, password });
     const loginRes = await loginRequest({
       email,
@@ -162,7 +158,7 @@ describe("POST:/refresh", () => {
     // 初回取得と再取得のaccessTokenのexpの差を1秒以上にするため1000m秒進める
     vi.advanceTimersByTime(1000);
 
-    const setCookieHeader = loginRes.headers.get("Set-Cookie");
+    const setCookieHeader = loginRes.headers.get('Set-Cookie');
     const refreshToken = setCookieHeader?.match(/refreshToken=([^;]+)/)?.[1];
     expect(refreshToken).toBeDefined();
 
@@ -180,23 +176,23 @@ describe("POST:/refresh", () => {
     await deleteTestUser(user.id);
   });
 
-  test("異常系:DBにリフレッシュトークンが存在しない場合トークン無効エラー", async () => {
-    const refreshRes = await accessTokenRefreshRequest("noExistToken");
+  test('異常系:DBにリフレッシュトークンが存在しない場合トークン無効エラー', async () => {
+    const refreshRes = await accessTokenRefreshRequest('noExistToken');
     expect(refreshRes.status).toBe(401);
 
     const json = (await refreshRes.json()) as {
       error: string;
     };
-    expect(json.error).toBe("無効なトークンです");
+    expect(json.error).toBe('無効なトークンです');
   });
 
-  test("異常系:リフレッシュトークンが有効期限切れの場合有効期限切れエラー", async () => {
+  test('異常系:リフレッシュトークンが有効期限切れの場合有効期限切れエラー', async () => {
     const user = await insertTestUser();
     const loginRes = await loginRequest({
-      email: "test@example.com",
-      password: "password",
+      email: 'test@example.com',
+      password: 'password',
     });
-    const setCookieHeader = loginRes.headers.get("Set-Cookie");
+    const setCookieHeader = loginRes.headers.get('Set-Cookie');
     const refreshToken = setCookieHeader?.match(/refreshToken=([^;]+)/)?.[1];
     expect(refreshToken).toBeDefined();
 
@@ -209,7 +205,7 @@ describe("POST:/refresh", () => {
     const json = (await refreshRes.json()) as {
       error: string;
     };
-    expect(json.error).toBe("トークンの有効期限が切れています");
+    expect(json.error).toBe('トークンの有効期限が切れています');
 
     const isExistToken = await isExistTestRefreshToken(user.id);
     expect(isExistToken).toBe(false);

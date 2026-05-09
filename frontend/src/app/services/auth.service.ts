@@ -101,8 +101,8 @@ export class AuthService {
       if (!decoded.id) return undefined;
       return {
         id: decoded.id as string,
-        email: decoded.email as string ?? '',
-        display_name: decoded.display_name as string ?? '',
+        email: (decoded.email as string) ?? '',
+        display_name: (decoded.display_name as string) ?? '',
       };
     } catch {
       return undefined;

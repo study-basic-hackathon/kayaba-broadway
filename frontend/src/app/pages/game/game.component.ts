@@ -317,9 +317,7 @@ export class GameComponent implements OnInit, OnDestroy {
     // 自分のプレイヤー表示
     const selectedCharacter = localStorage.getItem('selectedCharacter') ?? 'ghost';
 
-    this.playerBaseTexture = await Assets.load(
-      `/assets/character/${selectedCharacter}.png`
-    )
+    this.playerBaseTexture = await Assets.load(`/assets/character/${selectedCharacter}.png`);
 
     const texture = this.getPlayerTexture('up', 0);
 
@@ -352,7 +350,7 @@ export class GameComponent implements OnInit, OnDestroy {
   private getCharacterTexture(
     baseTexture: Texture,
     direction: 'down' | 'left' | 'right' | 'up',
-    frameIndex: number
+    frameIndex: number,
   ): Texture {
     const directionRows = {
       down: 0,
@@ -367,14 +365,14 @@ export class GameComponent implements OnInit, OnDestroy {
         frameIndex * this.playerFrameWidth,
         row * this.playerFrameHeight,
         this.playerFrameWidth,
-        this.playerFrameHeight
+        this.playerFrameHeight,
       ),
     });
   }
 
   private getPlayerTexture(
     direction: 'down' | 'left' | 'right' | 'up',
-    frameIndex: number
+    frameIndex: number,
   ): Texture {
     return this.getCharacterTexture(this.playerBaseTexture, direction, frameIndex);
   }
@@ -580,12 +578,17 @@ export class GameComponent implements OnInit, OnDestroy {
     this.socket = new PartySocket({
       host: environment.partykitHost,
       room: fieldId,
-      ...(token ? { query: { token, characterId: this.selectedCharacter, } } : {}),
+      ...(token ? { query: { token, characterId: this.selectedCharacter } } : {}),
     });
 
     // 接続確立直後に現在位置を送信して他のユーザーに自分の存在を知らせる
     this.socket.addEventListener('open', () => {
-      this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y, characterId: this.selectedCharacter, } }));
+      this.socket.send(
+        JSON.stringify({
+          message_type: 'move',
+          data: { x: this.x, y: this.y, characterId: this.selectedCharacter },
+        }),
+      );
     });
 
     // 4001（Unauthorized）で切断された場合はトークンをリフレッシュして繋ぎ直す
@@ -608,7 +611,13 @@ export class GameComponent implements OnInit, OnDestroy {
 
         // 誰かが入室：その人を表示
         case 'join':
-          this.addOtherPlayer(msg.data.userId, msg.data.displayName, msg.data.x, msg.data.y, msg.data.characterId ?? 'ghost');
+          this.addOtherPlayer(
+            msg.data.userId,
+            msg.data.displayName,
+            msg.data.x,
+            msg.data.y,
+            msg.data.characterId ?? 'ghost',
+          );
           break;
 
         // 誰かが移動：その人の位置を更新
@@ -706,7 +715,11 @@ export class GameComponent implements OnInit, OnDestroy {
         const baseTexture = await Assets.load(`/assets/character/${characterId}.png`);
         existing.characterId = characterId;
         existing.baseTexture = baseTexture;
-        existing.graphics.texture = this.getCharacterTexture(baseTexture, existing.direction, existing.frame);
+        existing.graphics.texture = this.getCharacterTexture(
+          baseTexture,
+          existing.direction,
+          existing.frame,
+        );
       }
       return;
     }
@@ -833,7 +846,12 @@ export class GameComponent implements OnInit, OnDestroy {
 
       this.player.texture = this.getPlayerTexture(this.playerDirection, this.playerFrame);
 
-      this.socket.send(JSON.stringify({ message_type: 'move', data: { x: this.x, y: this.y, characterId: this.selectedCharacter, } }));
+      this.socket.send(
+        JSON.stringify({
+          message_type: 'move',
+          data: { x: this.x, y: this.y, characterId: this.selectedCharacter },
+        }),
+      );
     } else {
       this.playerFrame = 0;
       this.animationCounter = 0;

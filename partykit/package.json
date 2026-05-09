@@ -4,9 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "partykit dev",
-    "deploy": "partykit deploy"
+    "deploy": "partykit deploy",
+    "format": "prettier --write \"party/**/*.{ts,js}\""
   },
   "devDependencies": {
-    "partykit": "^0.0.115"
+    "partykit": "^0.0.115",
+    "prettier": "^3.8.3"
   }
 }

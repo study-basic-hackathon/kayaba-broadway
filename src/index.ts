@@ -1,36 +1,34 @@
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { createFactory } from "hono/factory";
-import { jwt } from "hono/jwt";
-import Stripe from "stripe";
-import { ALG } from "./constants";
-import auth from "./routes/auth";
-import fields from "./routes/fields";
-import payment from "./routes/payment";
-import products from "./routes/products";
-import shops from "./routes/shops";
-import users from "./routes/users";
-import purchase from "./routes/purchase";
-import debug from "./routes/debug";
-import { type AppType } from "./types";
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { createFactory } from 'hono/factory';
+import { jwt } from 'hono/jwt';
+import Stripe from 'stripe';
+import { ALG } from './constants';
+import auth from './routes/auth';
+import fields from './routes/fields';
+import payment from './routes/payment';
+import products from './routes/products';
+import shops from './routes/shops';
+import users from './routes/users';
+import purchase from './routes/purchase';
+import debug from './routes/debug';
+import { type AppType } from './types';
 
 const app = new Hono<AppType>();
 
-app.use("/*", (c, next) => {
-  const origins = (c.env.CORS_ORIGIN ?? "http://localhost:4200")
-    .split(",")
-    .map((s: string) => s.trim());
+app.use('/*', (c, next) => {
+  const origins = (c.env.CORS_ORIGIN ?? 'http://localhost:4200').split(',').map((s: string) => s.trim());
   return cors({
     origin: origins,
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
     maxAge: 600,
   })(c, next);
 });
 
-app.use("/*", async (c, next) => {
+app.use('/*', async (c, next) => {
   await next();
-  c.header("X-Content-Type-Options", "nosniff");
+  c.header('X-Content-Type-Options', 'nosniff');
 });
 
 app.use(async (c, next) => {
@@ -38,19 +36,15 @@ app.use(async (c, next) => {
     maxNetworkRetries: 3,
     timeout: 30 * 1000,
   });
-  c.set("stripe", stripe);
+  c.set('stripe', stripe);
   await next();
 });
 
 const factory = createFactory<{ Bindings: Env }>();
 app.use(
-  "/*",
+  '/*',
   factory.createMiddleware(async (c, next) => {
-    if (
-      c.req.path.startsWith("/auth/") ||
-      c.req.path.startsWith("/debug/") ||
-      c.req.path.startsWith("/products/images")
-    ) {
+    if (c.req.path.startsWith('/auth/') || c.req.path.startsWith('/debug/') || c.req.path.startsWith('/products/images')) {
       return next();
     }
 
@@ -62,12 +56,12 @@ app.use(
   }),
 );
 
-app.route("/auth", auth);
-app.route("/users", users);
-app.route("/shops", shops);
-app.route("/products", products);
-app.route("/fields", fields);
-app.route("/payment", payment);
-app.route("/purchase", purchase);
-app.route("/debug", debug);
+app.route('/auth', auth);
+app.route('/users', users);
+app.route('/shops', shops);
+app.route('/products', products);
+app.route('/fields', fields);
+app.route('/payment', payment);
+app.route('/purchase', purchase);
+app.route('/debug', debug);
 export default app;

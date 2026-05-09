@@ -1,1 +1,1 @@
-export const ALG = "HS256";
+export const ALG = 'HS256';
