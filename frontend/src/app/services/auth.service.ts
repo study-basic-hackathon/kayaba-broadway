@@ -78,6 +78,49 @@ export class AuthService {
     return localStorage.getItem('accessToken');
   }
 
+  /**
+   * アクセストークンが有効期限内かチェックする
+   * @param bufferSeconds 余裕を持たせる秒数（デフォルト: 60秒）
+   */
+  isAccessTokenValid(bufferSeconds = 60): boolean {
+    const token = this.getAccessToken();
+    if (!token) return false;
+
+    try {
+      const payload = token.split('.')[1];
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const binary = atob(base64);
+      const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+      const decoded = JSON.parse(new TextDecoder().decode(bytes));
+
+      if (!decoded.exp) return false;
+
+      const nowUnix = Math.floor(Date.now() / 1000);
+      return decoded.exp > nowUnix + bufferSeconds;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * トークンが期限切れまたは期限切れ間近の場合、リフレッシュする
+   */
+  async ensureValidToken(): Promise<void> {
+    if (this.isAccessTokenValid()) {
+      return; // トークンが有効ならそのまま
+    }
+
+    try {
+      const res = await firstValueFrom(this.refresh());
+      this.setAuth(res.accessToken, res.user);
+    } catch (error) {
+      // リフレッシュ失敗時はトークンをクリア
+      localStorage.removeItem('accessToken');
+      this.currentUser.set(null);
+      throw error;
+    }
+  }
+
   setAuth(token: string, user: User) {
     localStorage.setItem('accessToken', token);
     this.currentUser.set(user);

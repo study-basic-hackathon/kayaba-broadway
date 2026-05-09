@@ -1,7 +1,7 @@
 import { HttpErrorResponse, HttpEvent, HttpHandlerFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, filter, Observable, switchMap, take, throwError } from 'rxjs';
+import { catchError, delay, filter, Observable, retry, switchMap, take, throwError, timer } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { TokenRefreshService } from '../services/tokenRefresh.service';
 
@@ -37,10 +37,23 @@ export function authInterceptor(
   const reqWithToken = accessToken
     ? req.clone({
         headers: req.headers.set('Authorization', `Bearer ${accessToken}`),
+        withCredentials: true,
       })
-    : req;
+    : req.clone({ withCredentials: true });
 
   return next(reqWithToken).pipe(
+    retry({
+      count: 3,
+      delay: (error: HttpErrorResponse, retryCount) => {
+        // 401エラーの場合のみリトライ（Cookie付与遅延対策）
+        // Safari スリープ復帰時のネットワーク再接続を考慮して段階的に延長
+        if (error.status === 401) {
+          const delays = [200, 500, 1000];
+          return timer(delays[retryCount - 1] || 1000);
+        }
+        throw error;
+      },
+    }),
     catchError((error: HttpErrorResponse) => {
       // 認証エラー以外のエラーはそのままエラーとして返す
       if (error.status !== 401) {
