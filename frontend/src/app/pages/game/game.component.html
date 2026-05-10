@@ -70,3 +70,58 @@
     <app-oshinagaki-modal [menuItems]="menuItems()" (close)="isOshinagakiModalOpen = false" />
   }
 </div>
+
+<!-- ============================================================
+     ビデオバー — 画面上部スライドイン
+============================================================ -->
+<div class="video-bar" [class.open]="chatConnected">
+  <div class="video-tiles">
+
+    <!-- ローカル映像タイル -->
+    @if (chatConnected) {
+      <div class="video-tile tile-local">
+        @if (camOff) {
+          <div class="tile-avatar">
+            <span>{{ cfg.displayName.charAt(0).toUpperCase() }}</span>
+          </div>
+        }
+        <video id="local-video" autoplay muted playsinline></video>
+        <span class="tile-label">{{ cfg.displayName }} (あなた)</span>
+        @if (micMuted) { <span class="tile-badge">🔇</span> }
+      </div>
+    }
+
+    <!-- リモート参加者タイル -->
+    @for (p of participants; track p.identity) {
+      <div class="video-tile">
+        <div class="tile-avatar">
+          <span>{{ p.identity.charAt(0).toUpperCase() }}</span>
+        </div>
+        <video [id]="'rv-' + p.identity" autoplay playsinline></video>
+        <audio [id]="'ra-' + p.identity" autoplay></audio>
+        <span class="tile-label">{{ p.identity }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="bar-spacer"></div>
+
+  @if (chatConnected) {
+    <div class="bar-meta">
+      <div class="bar-room-label">接続中</div>
+      <div class="bar-room-name">{{ cfg.roomName }}</div>
+    </div>
+
+    <div class="bar-controls">
+      <button class="ctrl-btn" [class.ctrl-off]="micMuted"
+              title="マイク切替" (click)="toggleMic()">
+        {{ micMuted ? '🔇' : '🎤' }}
+      </button>
+      <button class="ctrl-btn" [class.ctrl-off]="camOff"
+              title="カメラ切替" (click)="toggleCam()">
+        {{ camOff ? '📷' : '📸' }}
+      </button>
+      <button class="leave-btn" (click)="manualDisconnect()">退出</button>
+    </div>
+  }
+</div>
