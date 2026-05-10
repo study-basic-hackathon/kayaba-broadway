@@ -32,7 +32,12 @@ cp .dev.vars.example .dev.vars
 JWT_SECRET=your_secret_here
 STRIPE_API_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=xxx
+LIVEKIT_API_KEY=devkey
+LIVEKIT_API_SECRET=secret-at-least-32-chars-long!!
+LIVEKIT_WS_URL=ws://localhost:7880
 ```
+
+> `LIVEKIT_API_KEY` と `LIVEKIT_API_SECRET` は `livekit.yaml` の `keys` と一致させる。ローカル開発では `devkey: secret-at-least-32-chars-long!!` を使用する。
 
 **Partykit**: `partykit/.env.example` をコピーして `partykit/.env` を作成し、値を埋める。
 
@@ -90,6 +95,7 @@ npm run dev
 
 ```bash
 npm run livekit:up
+# ws://localhost:7880
 ```
 
 なお、LiveKit Serverを止める場合は
@@ -98,17 +104,23 @@ npm run livekit:up
 npm run livekit:down
 ```
 
+ログを確認する場合:
+
+```bash
+npm run livekit:logs
+```
+
 ### VS Code から起動する場合
 
 `.vscode/launch.json` に起動設定が用意されている。VS Code の「実行とデバッグ」パネルから以下を選択して起動できる。
 
-| 設定名 | 説明 |
-| ------ | ---- |
-| `バックエンド (wrangler dev)` | バックエンドのみ起動（`http://localhost:8787`） |
-| `フロントエンド (ng serve)` | フロントエンドのみ起動（`http://localhost:4200`） |
-| `Partykit (partykit dev)` | Partykitのみ起動（`ws://localhost:1999`） |
-| `フロント + バック 同時起動` | バックエンドとフロントエンドを同時に起動 |
-| `フロント + バック + Partykit 同時起動` | 3つすべてを同時に起動 |
+| 設定名                                  | 説明                                              |
+| --------------------------------------- | ------------------------------------------------- |
+| `バックエンド (wrangler dev)`           | バックエンドのみ起動（`http://localhost:8787`）   |
+| `フロントエンド (ng serve)`             | フロントエンドのみ起動（`http://localhost:4200`） |
+| `Partykit (partykit dev)`               | Partykitのみ起動（`ws://localhost:1999`）         |
+| `フロント + バック 同時起動`            | バックエンドとフロントエンドを同時に起動          |
+| `フロント + バック + Partykit 同時起動` | 3つすべてを同時に起動                             |
 
 ## デプロイ
 
@@ -202,6 +214,67 @@ npm run deploy
 
 ---
 
+## LiveKit
+
+ショップ内でのビデオチャットに LiveKit を使用する。プレイヤーが店舗ゾーンに入ると、フロントエンドがバックエンドの `GET /shops/:id/livekit/token` を呼び出し、返却された LiveKit token と WebSocket URL で LiveKit Server に接続する。店舗ゾーンから出る、別店舗へ移動する、またはゲーム画面を離れると切断される。
+
+### ローカル構成
+
+ローカル開発では Docker Compose で LiveKit Server と Redis を起動する。
+
+```bash
+npm run livekit:up
+```
+
+主な設定ファイル:
+
+- `docker-compose.yml`: LiveKit Server と Redis の起動定義
+- `livekit.yaml`: LiveKit Server の API key、secret、RTC port 設定
+- `.dev.vars`: バックエンドが LiveKit token を発行するための環境変数
+
+ローカルの既定値:
+
+```bash
+LIVEKIT_API_KEY=devkey
+LIVEKIT_API_SECRET=secret-at-least-32-chars-long!!
+LIVEKIT_WS_URL=ws://localhost:7880
+```
+
+`LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` は `livekit.yaml` の `keys` と同じ値にする。値が一致しない場合、バックエンドで token は発行できても LiveKit Server 側で認証に失敗する。
+
+### 接続フロー
+
+1. フロントエンドの `game.component.ts` が現在の店舗 ID をもとに `GET /shops/:id/livekit/token` を呼び出す。
+2. バックエンドの `src/routes/shops.ts` が認証済み JWT の `id` を LiveKit identity として token を生成する。
+3. フロントエンドの `LiveKitService` が `LIVEKIT_WS_URL` と token を使って room に参加する。
+4. room 名は `shop-<shopId>` になる。
+
+LiveKit identity はフロントエンドから送られた任意値ではなく、バックエンドで検証済みのアクセストークンから決定される。
+
+### 本番環境
+
+本番で LiveKit Cloud またはセルフホスト LiveKit を使う場合は、Workers の secret / vars に以下を設定する。
+
+```bash
+npx wrangler secret put LIVEKIT_API_KEY
+npx wrangler secret put LIVEKIT_API_SECRET
+npx wrangler secret put LIVEKIT_WS_URL
+```
+
+`LIVEKIT_WS_URL` は LiveKit の WebSocket URL を指定する。
+
+```bash
+# LiveKit Cloud の例
+wss://your-app.livekit.cloud
+
+# セルフホストの例
+wss://your-livekit.example.com
+```
+
+セルフホストする場合は、LiveKit Server 側の `keys` と Workers 側の `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` を揃える。
+
+---
+
 ## フロントエンド（`/frontend`）
 
 Angular + PixiJS による 2D マップ UI。
@@ -220,4 +293,3 @@ cd frontend
 npm start
 # http://localhost:4200
 ```
-
