@@ -42,8 +42,13 @@ router.get('/:id/products', async (c) => {
 
 router.get('/:id/livekit/token', async (c) => {
   const { id: shopId } = c.req.param();
+  const payload = c.get('jwtPayload');
+  const userId = typeof payload.id === 'string' ? payload.id : null;
 
-  const identity = 'userId';
+  if (!userId) {
+    return c.json({ error: 'ユーザーIDを取得できません' }, 401);
+  }
+
   const roomName = `shop-${shopId}`;
 
   const apiKey = c.env.LIVEKIT_API_KEY;
@@ -66,7 +71,7 @@ router.get('/:id/livekit/token', async (c) => {
   })
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setIssuer(apiKey)
-    .setSubject(identity)
+    .setSubject(userId)
     .setIssuedAt(now)
     .setExpirationTime(now + 60 * 30) // 30分
     .sign(key);
