@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
 import { shops, products } from '../db/schema';
 import { type AppType } from '../types';
+import { SignJWT } from 'jose';
 
 const router = new Hono<AppType>();
 
@@ -37,6 +38,48 @@ router.get('/:id/products', async (c) => {
   const productsRecord = await db.select().from(products).where(eq(products.shop_id, shop_id));
 
   return c.json({ products: productsRecord });
+});
+
+router.get('/:id/livekit/token', async (c) => {
+  const { id: shopId } = c.req.param();
+  const payload = c.get('jwtPayload');
+  const userId = typeof payload.id === 'string' ? payload.id : null;
+
+  if (!userId) {
+    return c.json({ error: 'ユーザーIDを取得できません' }, 401);
+  }
+
+  const roomName = `shop-${shopId}`;
+
+  const apiKey = c.env.LIVEKIT_API_KEY;
+  const apiSecret = c.env.LIVEKIT_API_SECRET;
+
+  const secretBytes = new TextEncoder().encode(apiSecret);
+  const key = await crypto.subtle.importKey('raw', secretBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+
+  const now = Math.floor(Date.now() / 1000);
+
+  const jwt = await new SignJWT({
+    // LiveKit 固有の claims
+    video: {
+      roomJoin: true,
+      room: roomName,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true,
+    },
+  })
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .setIssuer(apiKey)
+    .setSubject(userId)
+    .setIssuedAt(now)
+    .setExpirationTime(now + 60 * 30) // 30分
+    .sign(key);
+
+  return c.json({
+    token: jwt,
+    livekit_ws_url: c.env.LIVEKIT_WS_URL,
+  });
 });
 
 export default router;

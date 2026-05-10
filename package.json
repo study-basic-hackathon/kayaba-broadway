@@ -6,13 +6,17 @@
     "deploy": "wrangler deploy --minify",
     "test": "vitest run",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
-    "format": "prettier --write \"src/**/*.{ts,js}\""
+    "format": "prettier --write \"src/**/*.{ts,js}\"",
+    "livekit:up": "docker compose up -d",
+    "livekit:down": "docker compose down",
+    "livekit:logs": "docker compose logs -f livekit"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.12",
+    "jose": "^6.2.3",
     "stripe": "^22.1.0",
     "zod": "^4.3.6"
   },

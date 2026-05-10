@@ -15,11 +15,13 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Track, type RemoteParticipant, type RemoteTrack } from 'livekit-client';
 import PartySocket from 'partysocket';
 import { Application, Assets, Text as PixiText, Rectangle, Sprite, Texture } from 'pixi.js';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
 import { ShopChatService } from '../../services/shop-chat.service';
+import { LiveKitService, type RemoveLiveKitListener } from '../../services/livekit.service';
 import { OshinagakiModalComponent } from '../oshinagaki-modal/oshinagaki-modal.component';
 
 interface Shop {
@@ -58,6 +60,16 @@ interface ProductsResponse {
   products: Product[];
 }
 
+interface LivekitConnectionInfoResponse {
+  token: string;
+  livekit_ws_url: string;
+}
+
+interface VideoParticipant {
+  id: string;
+  identity: string;
+}
+
 @Component({
   selector: 'app-game',
   standalone: true,
@@ -74,6 +86,10 @@ export class GameComponent implements OnInit, OnDestroy {
   private app!: Application;
   private player!: Sprite;
   private playerLabel!: PixiText;
+  private liveKit = inject(LiveKitService);
+  private removeLiveKitListeners: RemoveLiveKitListener[] = [];
+  private liveKitConnectionVersion = 0;
+  private liveKitOperation = Promise.resolve();
 
   private route = inject(ActivatedRoute);
   router = inject(Router);
@@ -91,6 +107,12 @@ export class GameComponent implements OnInit, OnDestroy {
   currentShop = signal<Shop | null>(null);
 
   isOshinagakiModalOpen = false;
+  isLiveKitConnecting = signal(false);
+  isLiveKitConnected = signal(false);
+  liveKitError = signal<string | null>(null);
+  participants = signal<VideoParticipant[]>([]);
+  micMuted = signal(false);
+  camOff = signal(false);
 
   // PCかスマホかの判定（タッチデバイス判定）
   readonly isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -106,12 +128,18 @@ export class GameComponent implements OnInit, OnDestroy {
   menuItems = signal<Product[]>([]);
 
   constructor(private cdr: ChangeDetectorRef) {
+    this.registerLiveKitListeners();
+
     // currentShop が変化したら shop チャットの接続・切断を制御する
     effect(() => {
       const shop = this.currentShop();
+      const connectionVersion = ++this.liveKitConnectionVersion;
+
       if (shop) {
         const token = this.auth.getAccessToken();
         this.shopChatService.connect(shop.id, token);
+        this.disconnectLiveKitRoom();
+        this.connectLiveKitRoom(shop, connectionVersion);
         // 入店したタイミングで、その店舗の最終既読時刻を復元する
         this.lastChatClosedAt.set(this.loadLastChatClosedAt(shop.id));
         // チャットはスマホのみ閉じた状態にリセット
@@ -129,6 +157,7 @@ export class GameComponent implements OnInit, OnDestroy {
           });
       } else {
         this.shopChatService.disconnect();
+        this.disconnectLiveKitRoom();
       }
     });
 
@@ -170,6 +199,243 @@ export class GameComponent implements OnInit, OnDestroy {
 
   private loadLastChatClosedAt(shopId: string): number {
     return Number(localStorage.getItem(GameComponent.CHAT_CLOSED_KEY_PREFIX + shopId) ?? 0);
+  }
+
+  private registerLiveKitListeners(): void {
+    this.removeLiveKitListeners = [
+      this.liveKit.onParticipantConnected((participant) => {
+        this.ngZone.run(() => this.upsertVideoParticipant(participant));
+      }),
+      this.liveKit.onParticipantDisconnected((participant) => {
+        this.ngZone.run(() => {
+          this.detachRemoteParticipantTracks(participant);
+          this.participants.update((prev) => prev.filter((p) => p.id !== participant.sid));
+        });
+      }),
+      this.liveKit.onTrackSubscribed(({ track, participant }) => {
+        this.ngZone.run(() => {
+          this.upsertVideoParticipant(participant);
+          this.attachRemoteTrack(track, participant);
+        });
+      }),
+      this.liveKit.onTrackUnsubscribed((track) => {
+        track.detach().forEach((element) => {
+          element.srcObject = null;
+        });
+      }),
+      this.liveKit.onDisconnected(() => {
+        this.ngZone.run(() => {
+          this.isLiveKitConnecting.set(false);
+          this.isLiveKitConnected.set(false);
+          this.clearVideoChatState();
+        });
+      }),
+    ];
+  }
+
+  private connectLiveKitRoom(shop: Shop, connectionVersion: number): void {
+    this.isLiveKitConnecting.set(true);
+    this.isLiveKitConnected.set(false);
+    this.liveKitError.set(null);
+
+    void (async () => {
+      try {
+        const data = await firstValueFrom(
+          this.http.get<LivekitConnectionInfoResponse>(
+            `${environment.apiBaseUrl}/shops/${shop.id}/livekit/token`,
+          ),
+        );
+
+        if (!this.isCurrentLiveKitConnection(shop.id, connectionVersion)) {
+          return;
+        }
+
+        await this.enqueueLiveKitOperation(async () => {
+          if (!this.isCurrentLiveKitConnection(shop.id, connectionVersion)) {
+            return;
+          }
+
+          await this.liveKit.connect(data.livekit_ws_url, data.token);
+
+          this.ngZone.run(() => {
+            if (this.isCurrentLiveKitConnection(shop.id, connectionVersion)) {
+              this.isLiveKitConnected.set(true);
+              this.micMuted.set(false);
+              this.camOff.set(false);
+              this.syncRemoteParticipants();
+              this.attachLocalVideoTrack();
+              this.liveKitError.set(null);
+            } else {
+              this.disconnectLiveKitRoom();
+            }
+          });
+        });
+      } catch (error) {
+        if (!this.isCurrentLiveKitConnection(shop.id, connectionVersion)) {
+          return;
+        }
+
+        console.error('LiveKit接続に失敗しました', error);
+        this.ngZone.run(() => {
+          this.isLiveKitConnecting.set(false);
+          this.isLiveKitConnected.set(false);
+          this.liveKitError.set('ビデオチャットへの接続に失敗しました');
+        });
+      } finally {
+        if (this.isCurrentLiveKitConnection(shop.id, connectionVersion)) {
+          this.ngZone.run(() => this.isLiveKitConnecting.set(false));
+        }
+      }
+    })();
+  }
+
+  private disconnectLiveKitRoom(): void {
+    this.isLiveKitConnecting.set(false);
+    this.isLiveKitConnected.set(false);
+    this.liveKitError.set(null);
+    this.clearVideoChatState();
+
+    void this.enqueueLiveKitOperation(async () => {
+      await this.liveKit.disconnect();
+    });
+  }
+
+  private isCurrentLiveKitConnection(shopId: string, connectionVersion: number): boolean {
+    return this.liveKitConnectionVersion === connectionVersion && this.currentShop()?.id === shopId;
+  }
+
+  private enqueueLiveKitOperation(operation: () => Promise<void>): Promise<void> {
+    const queuedOperation = this.liveKitOperation.catch(() => undefined).then(operation);
+    this.liveKitOperation = queuedOperation.catch((error) => {
+      console.error('LiveKit操作に失敗しました', error);
+    });
+    return queuedOperation;
+  }
+
+  get chatConnected(): boolean {
+    return this.isLiveKitConnected();
+  }
+
+  get videoBarOpen(): boolean {
+    return (
+      Boolean(this.currentShop()) &&
+      (this.isLiveKitConnecting() || this.chatConnected || Boolean(this.liveKitError()))
+    );
+  }
+
+  get displayName(): string {
+    return this.auth.user()?.display_name ?? this.auth.getUserFromToken()?.display_name ?? 'あなた';
+  }
+
+  get liveKitRoomName(): string {
+    const shop = this.currentShop();
+    return shop ? `shop-${shop.name}` : '';
+  }
+
+  remoteVideoId(participant: VideoParticipant): string {
+    return `rv-${participant.id}`;
+  }
+
+  remoteAudioId(participant: VideoParticipant): string {
+    return `ra-${participant.id}`;
+  }
+
+  async toggleMic(): Promise<void> {
+    const enabled = this.micMuted();
+    await this.liveKit.setMicEnabled(enabled);
+    this.micMuted.set(!enabled);
+  }
+
+  async toggleCam(): Promise<void> {
+    const enabled = this.camOff();
+    await this.liveKit.setCamEnabled(enabled);
+    this.camOff.set(!enabled);
+    if (enabled) {
+      this.attachLocalVideoTrack();
+    }
+  }
+
+  manualDisconnect(): void {
+    this.liveKitConnectionVersion++;
+    this.disconnectLiveKitRoom();
+  }
+
+  private upsertVideoParticipant(participant: RemoteParticipant): void {
+    this.participants.update((prev) => {
+      if (prev.some((p) => p.id === participant.sid)) {
+        return prev;
+      }
+      return [...prev, { id: participant.sid, identity: participant.identity }];
+    });
+  }
+
+  private syncRemoteParticipants(): void {
+    const room = this.liveKit.getRoom();
+    const remoteParticipants = room ? Array.from(room.remoteParticipants.values()) : [];
+    this.participants.set(
+      remoteParticipants.map((participant) => ({
+        id: participant.sid,
+        identity: participant.identity,
+      })),
+    );
+    setTimeout(() => {
+      remoteParticipants.forEach((participant) => {
+        participant.trackPublications.forEach((publication) => {
+          const track = publication.track;
+          if (track) {
+            this.attachRemoteTrack(track, participant);
+          }
+        });
+      });
+    });
+  }
+
+  private attachLocalVideoTrack(): void {
+    setTimeout(() => {
+      const video = document.getElementById('local-video') as HTMLVideoElement | null;
+      const track = this.liveKit.getLocalVideoTrack();
+      if (!video || !track) return;
+      track.attach(video);
+    });
+  }
+
+  private attachRemoteTrack(track: RemoteTrack, participant: RemoteParticipant): void {
+    setTimeout(() => {
+      if (track.kind === Track.Kind.Video) {
+        const video = document.getElementById(`rv-${participant.sid}`) as HTMLVideoElement | null;
+        if (video) {
+          track.attach(video);
+        }
+        return;
+      }
+
+      if (track.kind === Track.Kind.Audio) {
+        const audio = document.getElementById(`ra-${participant.sid}`) as HTMLAudioElement | null;
+        if (audio) {
+          track.attach(audio);
+        }
+      }
+    });
+  }
+
+  private detachRemoteParticipantTracks(participant: RemoteParticipant): void {
+    participant.trackPublications.forEach((publication) => {
+      publication.track?.detach().forEach((element) => {
+        element.srcObject = null;
+      });
+    });
+  }
+
+  private clearVideoChatState(): void {
+    this.liveKit
+      .getLocalVideoTrack()
+      ?.detach()
+      .forEach((element) => {
+        element.srcObject = null;
+      });
+    this.participants.set([]);
+    this.micMuted.set(false);
+    this.camOff.set(false);
   }
 
   onChatInputFocus() {
@@ -933,6 +1199,10 @@ export class GameComponent implements OnInit, OnDestroy {
     // WebSocket接続を安全に切断
     this.socket?.close();
     this.shopChatService.disconnect();
+    this.liveKitConnectionVersion++;
+    this.removeLiveKitListeners.forEach((remove) => remove());
+    this.removeLiveKitListeners = [];
+    this.disconnectLiveKitRoom();
 
     // PixiJSのtickerを停止・解除してからcanvasやメモリを解放
     this.app?.ticker.remove(this.update, this);
