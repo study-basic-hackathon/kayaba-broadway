@@ -14,7 +14,7 @@ import {
 // イベントの型定義
 // ============================================================
 export interface TrackSubscribedEvent {
-  track:       RemoteTrack;
+  track: RemoteTrack;
   participant: RemoteParticipant;
 }
 
@@ -40,7 +40,6 @@ export type RemoveLiveKitListener = () => void;
 // ============================================================
 @Injectable({ providedIn: 'root' })
 export class LiveKitService {
-
   private room: Room | null = null;
 
   // RxJS を使わず、通常の callback を Set で管理する。
@@ -88,7 +87,7 @@ export class LiveKitService {
     // dynacast は相手側の受信状況に応じて送信する映像品質を調整する。
     this.room = new Room({
       adaptiveStream: true,
-      dynacast:       true,
+      dynacast: true,
       videoCaptureDefaults: {
         resolution: VideoPresets.h360.resolution,
       },
@@ -97,11 +96,15 @@ export class LiveKitService {
     // LiveKit SDK のイベントを、このサービス独自の callback イベントへ変換する。
     // component 側は LiveKit SDK の RoomEvent を直接知らなくてよい。
     this.room
-      .on(RoomEvent.ParticipantConnected,    (p)           => this.emit(this.participantConnectedListeners, p))
-      .on(RoomEvent.ParticipantDisconnected, (p)           => this.emit(this.participantDisconnectedListeners, p))
-      .on(RoomEvent.TrackSubscribed,         (track, _, p) => this.emit(this.trackSubscribedListeners, { track, participant: p }))
-      .on(RoomEvent.TrackUnsubscribed,       (track)       => this.emit(this.trackUnsubscribedListeners, track))
-      .on(RoomEvent.Disconnected,            (reason)      => {
+      .on(RoomEvent.ParticipantConnected, (p) => this.emit(this.participantConnectedListeners, p))
+      .on(RoomEvent.ParticipantDisconnected, (p) =>
+        this.emit(this.participantDisconnectedListeners, p),
+      )
+      .on(RoomEvent.TrackSubscribed, (track, _, p) =>
+        this.emit(this.trackSubscribedListeners, { track, participant: p }),
+      )
+      .on(RoomEvent.TrackUnsubscribed, (track) => this.emit(this.trackUnsubscribedListeners, track))
+      .on(RoomEvent.Disconnected, (reason) => {
         this.room = null;
         this.emit(this.disconnectedListeners, reason);
       });
@@ -119,7 +122,11 @@ export class LiveKitService {
     if (this.room) {
       // disconnect() は RoomEvent.Disconnected を発火する。
       // そこで UI 側に切断イベントが通知され、参加者一覧などがクリアされる。
-      try { await this.room.disconnect(); } catch { /* ignore */ }
+      try {
+        await this.room.disconnect();
+      } catch {
+        /* ignore */
+      }
       this.room = null;
     }
   }
@@ -146,7 +153,10 @@ export class LiveKitService {
     await this.room?.localParticipant.setCameraEnabled(enabled);
   }
 
-  private addListener<T>(listeners: Set<EventHandler<T>>, handler: EventHandler<T>): RemoveLiveKitListener {
+  private addListener<T>(
+    listeners: Set<EventHandler<T>>,
+    handler: EventHandler<T>,
+  ): RemoveLiveKitListener {
     listeners.add(handler);
     return () => listeners.delete(handler);
   }

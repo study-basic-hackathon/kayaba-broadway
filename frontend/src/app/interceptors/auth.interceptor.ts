@@ -1,7 +1,17 @@
 import { HttpErrorResponse, HttpEvent, HttpHandlerFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, delay, filter, Observable, retry, switchMap, take, throwError, timer } from 'rxjs';
+import {
+  catchError,
+  delay,
+  filter,
+  Observable,
+  retry,
+  switchMap,
+  take,
+  throwError,
+  timer,
+} from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { TokenRefreshService } from '../services/tokenRefresh.service';
 
