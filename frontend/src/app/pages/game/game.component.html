@@ -1,7 +1,7 @@
 <div class="wrapper">
   <div #gameContainer></div>
   @if (currentShop()) {
-    <div class="shop-overlay" [class.chat-open]="isChatOpen">
+    <div class="shop-overlay">
       <div class="shop-header">
         <span class="shop-name">🏪 {{ currentShop()!.name }}</span>
         @if (isMobile) {
@@ -74,52 +74,61 @@
 <!-- ============================================================
      ビデオバー — 画面上部スライドイン
 ============================================================ -->
-<div class="video-bar" [class.open]="chatConnected">
+<div class="video-bar" [class.open]="videoBarOpen">
   <div class="video-tiles">
-
     <!-- ローカル映像タイル -->
     @if (chatConnected) {
-      <div class="video-tile tile-local">
-        @if (camOff) {
+      <div class="video-tile">
+        @if (camOff()) {
           <div class="tile-avatar">
-            <span>{{ cfg.displayName.charAt(0).toUpperCase() }}</span>
+            <span>{{ displayName.charAt(0).toUpperCase() }}</span>
           </div>
         }
-        <video id="local-video" autoplay muted playsinline></video>
-        <span class="tile-label">{{ cfg.displayName }} (あなた)</span>
-        @if (micMuted) { <span class="tile-badge">🔇</span> }
+        <video id="local-video" [class.video-hidden]="camOff()" autoplay muted playsinline></video>
+        <span class="tile-label">{{ displayName }} (あなた)</span>
+        @if (micMuted()) {
+          <span class="tile-badge">🔇</span>
+        }
       </div>
     }
 
     <!-- リモート参加者タイル -->
-    @for (p of participants; track p.identity) {
+    @for (p of participants(); track p.id) {
       <div class="video-tile">
         <div class="tile-avatar">
           <span>{{ p.identity.charAt(0).toUpperCase() }}</span>
         </div>
-        <video [id]="'rv-' + p.identity" autoplay playsinline></video>
-        <audio [id]="'ra-' + p.identity" autoplay></audio>
+        <video [id]="remoteVideoId(p)" autoplay playsinline></video>
+        <audio [id]="remoteAudioId(p)" autoplay></audio>
         <span class="tile-label">{{ p.identity }}</span>
       </div>
     }
   </div>
-
-  <div class="bar-spacer"></div>
+  <div class="bar-meta">
+    <div class="bar-room-label">
+      @if (isLiveKitConnecting()) {
+        接続中...
+      } @else if (liveKitError()) {
+        接続失敗
+      } @else if (chatConnected) {
+        接続中
+      }
+    </div>
+    <div class="bar-room-name">{{ liveKitError() ?? liveKitRoomName }}</div>
+  </div>
 
   @if (chatConnected) {
-    <div class="bar-meta">
-      <div class="bar-room-label">接続中</div>
-      <div class="bar-room-name">{{ cfg.roomName }}</div>
-    </div>
-
     <div class="bar-controls">
-      <button class="ctrl-btn" [class.ctrl-off]="micMuted"
-              title="マイク切替" (click)="toggleMic()">
-        {{ micMuted ? '🔇' : '🎤' }}
+      <button
+        class="ctrl-btn"
+        [class.ctrl-off]="micMuted()"
+        title="マイク切替"
+        (click)="toggleMic()"
+      >
+        {{ micMuted() ? '🔇' : '🎤' }}
       </button>
-      <button class="ctrl-btn" [class.ctrl-off]="camOff"
-              title="カメラ切替" (click)="toggleCam()">
-        {{ camOff ? '📷' : '📸' }}
+      <button class="ctrl-btn" [class.ctrl-off]="camOff()" title="カメラ切替" (click)="toggleCam()">
+        {{ camOff() ? '📷' : '📸' }}
       </button>
       <button class="leave-btn" (click)="manualDisconnect()">退出</button>
     </div>
