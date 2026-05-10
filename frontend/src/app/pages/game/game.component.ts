@@ -80,8 +80,10 @@ export class GameComponent implements OnInit, OnDestroy {
   private app!: Application;
   private player!: Sprite;
   private playerLabel!: PixiText;
-  private liveKit  = inject(LiveKitService);
+  private liveKit = inject(LiveKitService);
   private removeLiveKitListeners: RemoveLiveKitListener[] = [];
+  private liveKitConnectionVersion = 0;
+  private liveKitOperation = Promise.resolve();
 
   private route = inject(ActivatedRoute);
   router = inject(Router);
@@ -99,6 +101,9 @@ export class GameComponent implements OnInit, OnDestroy {
   currentShop = signal<Shop | null>(null);
 
   isOshinagakiModalOpen = false;
+  isLiveKitConnecting = signal(false);
+  isLiveKitConnected = signal(false);
+  liveKitError = signal<string | null>(null);
 
   // PCかスマホかの判定（タッチデバイス判定）
   readonly isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -114,24 +119,23 @@ export class GameComponent implements OnInit, OnDestroy {
   menuItems = signal<Product[]>([]);
 
   constructor(private cdr: ChangeDetectorRef) {
+    this.registerLiveKitListeners();
+
     // currentShop が変化したら shop チャットの接続・切断を制御する
     effect(() => {
       const shop = this.currentShop();
+      const connectionVersion = ++this.liveKitConnectionVersion;
+
       if (shop) {
         const token = this.auth.getAccessToken();
         this.shopChatService.connect(shop.id, token);
+        this.disconnectLiveKitRoom();
+        this.connectLiveKitRoom(shop, connectionVersion);
         // 入店したタイミングで、その店舗の最終既読時刻を復元する
         this.lastChatClosedAt.set(this.loadLastChatClosedAt(shop.id));
         // チャットはスマホのみ閉じた状態にリセット
         this.isChatOpen = !this.isMobile;
 
-        this.http
-          .get<LivekitConnectionInfoResponse>(`${environment.apiBaseUrl}/shops/${shop.id}/livekit/token`)
-          .subscribe({
-            next: (data) => {
-              console.log(data);
-            },
-          });
         this.http
           .get<ProductsResponse>(`${environment.apiBaseUrl}/shops/${shop.id}/products`)
           .subscribe({
@@ -144,6 +148,7 @@ export class GameComponent implements OnInit, OnDestroy {
           });
       } else {
         this.shopChatService.disconnect();
+        this.disconnectLiveKitRoom();
       }
     });
 
@@ -185,6 +190,91 @@ export class GameComponent implements OnInit, OnDestroy {
 
   private loadLastChatClosedAt(shopId: string): number {
     return Number(localStorage.getItem(GameComponent.CHAT_CLOSED_KEY_PREFIX + shopId) ?? 0);
+  }
+
+  private registerLiveKitListeners(): void {
+    this.removeLiveKitListeners = [
+      this.liveKit.onDisconnected(() => {
+        this.ngZone.run(() => {
+          this.isLiveKitConnecting.set(false);
+          this.isLiveKitConnected.set(false);
+        });
+      }),
+    ];
+  }
+
+  private connectLiveKitRoom(shop: Shop, connectionVersion: number): void {
+    this.isLiveKitConnecting.set(true);
+    this.isLiveKitConnected.set(false);
+    this.liveKitError.set(null);
+
+    void (async () => {
+      try {
+        const data = await firstValueFrom(
+          this.http.get<LivekitConnectionInfoResponse>(
+            `${environment.apiBaseUrl}/shops/${shop.id}/livekit/token`,
+          ),
+        );
+
+        if (!this.isCurrentLiveKitConnection(shop.id, connectionVersion)) {
+          return;
+        }
+
+        await this.enqueueLiveKitOperation(async () => {
+          if (!this.isCurrentLiveKitConnection(shop.id, connectionVersion)) {
+            return;
+          }
+
+          await this.liveKit.connect(data.livekit_ws_url, data.token);
+
+          this.ngZone.run(() => {
+            if (this.isCurrentLiveKitConnection(shop.id, connectionVersion)) {
+              this.isLiveKitConnected.set(true);
+              this.liveKitError.set(null);
+            } else {
+              this.disconnectLiveKitRoom();
+            }
+          });
+        });
+      } catch (error) {
+        if (!this.isCurrentLiveKitConnection(shop.id, connectionVersion)) {
+          return;
+        }
+
+        console.error('LiveKit接続に失敗しました', error);
+        this.ngZone.run(() => {
+          this.isLiveKitConnecting.set(false);
+          this.isLiveKitConnected.set(false);
+          this.liveKitError.set('ビデオチャットへの接続に失敗しました');
+        });
+      } finally {
+        if (this.isCurrentLiveKitConnection(shop.id, connectionVersion)) {
+          this.ngZone.run(() => this.isLiveKitConnecting.set(false));
+        }
+      }
+    })();
+  }
+
+  private disconnectLiveKitRoom(): void {
+    this.isLiveKitConnecting.set(false);
+    this.isLiveKitConnected.set(false);
+    this.liveKitError.set(null);
+
+    void this.enqueueLiveKitOperation(async () => {
+      await this.liveKit.disconnect();
+    });
+  }
+
+  private isCurrentLiveKitConnection(shopId: string, connectionVersion: number): boolean {
+    return this.liveKitConnectionVersion === connectionVersion && this.currentShop()?.id === shopId;
+  }
+
+  private enqueueLiveKitOperation(operation: () => Promise<void>): Promise<void> {
+    const queuedOperation = this.liveKitOperation.catch(() => undefined).then(operation);
+    this.liveKitOperation = queuedOperation.catch((error) => {
+      console.error('LiveKit操作に失敗しました', error);
+    });
+    return queuedOperation;
   }
 
   onChatInputFocus() {
@@ -948,6 +1038,10 @@ export class GameComponent implements OnInit, OnDestroy {
     // WebSocket接続を安全に切断
     this.socket?.close();
     this.shopChatService.disconnect();
+    this.liveKitConnectionVersion++;
+    this.removeLiveKitListeners.forEach((remove) => remove());
+    this.removeLiveKitListeners = [];
+    this.disconnectLiveKitRoom();
 
     // PixiJSのtickerを停止・解除してからcanvasやメモリを解放
     this.app?.ticker.remove(this.update, this);
