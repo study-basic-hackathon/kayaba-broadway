@@ -1,0 +1,14 @@
+name: kayaba-broadway
+slug: kayaba-broadway
+description:
+description_ja: 仮想空間の3Dマップを歩き回りながらデジタルコンテンツを購入できるオンラインマーケット。Cloudflare Workers、Hono、Angular、PixiJS、LiveKit、Partykitを組み合わせた構成。
+translation_locked: false
+status: incubating
+repo:
+tags:
+  - marketplace
+  - 3D map
+  - Cloudflare Workers
+  - Angular
+  - PixiJS
+  - LiveKit
